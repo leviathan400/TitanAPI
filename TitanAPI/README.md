@@ -1,7 +1,7 @@
 # TitanAPI - the library
 
 The TitanAPI library + main dev folder. A modern C++23 library for Outpost 2 missions, built on its own
-reverse-engineering substrate. (Project overview, roadmap, and changelog are at the repo root.)
+reverse-engineering substrate. (Project overview and changelog are at the repo root.)
 
 ## Two layers
 

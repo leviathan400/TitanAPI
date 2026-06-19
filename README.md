@@ -28,7 +28,7 @@ starting colony into a few lines of data.
   (fight/mining/building groups, unit blocks, wave attacks), disasters and terrain, typed save/load, and a
   declarative base builder - all verified against the real engine.
 - **Clean room.** Built from facts about the game binary (addresses, struct offsets) produced by the Outpost
-  Universe community's reverse-engineering. No copied code.
+  Universe community's reverse-engineering.
 
 ---
 
@@ -90,7 +90,8 @@ See [`samples/`](samples/) for complete, in-game-verified missions, and
 | **Mission lifecycle** | typed entry contract, typed save/load (`GetSaveRegions` + a `Stream` wrapper), `OnChat` / `OnSaveGame` / `OnEndMission` / ... callbacks |
 | **BaseBuilder** | declarative `BaseLayout` -> `createBase(player, layout, offset)`; tube/wall line helpers; map messages |
 | **Player** | faction/human/AI, resources & population, research, alliances, difficulty, satellite counts, center-view |
-| **Tooling** | a 155-check in-game self-test; crash diagnostics; tick-stamped logging |
+| **Crash diagnostics** | SEH-guarded exports + a process-wide unhandled-fault filter turn a crash into a logged fault address and game tick (e.g. `0xC0000005 at 0x4367DA, tick 2`) - a mission bug becomes debuggable instead of a silent lock-up |
+| **Tooling** | a 155-check in-game self-test; tick-stamped, flushed-per-line logging |
 
 ---
 

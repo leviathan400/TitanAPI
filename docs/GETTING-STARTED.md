@@ -33,7 +33,7 @@ sample - they are the mission-DLL contract and the logging/crash helpers.
 ## 4. The shape of a mission
 
 ```cpp
-#include "op2.hpp"            // the op2:: facade
+#include "op2.hpp"           // the op2:: facade
 #include "op2/trigger.hpp"   // triggers + win/lose (include in exactly one .cpp)
 #include "op2_mission.hpp"   // the mission-DLL contract (DescBlock types)
 #include "op2_log.hpp"       // file logging
