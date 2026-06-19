@@ -1,4 +1,4 @@
-// mission.cpp — TitanAPI demo mission, built on the Layer 2 FACADE (op2::Game / op2::Player / op2::Unit).
+// mission.cpp - TitanAPI demo mission, built on the Layer 2 FACADE (op2::Game / op2::Player / op2::Unit).
 //
 // Same colony as the Layer-1 sample, but expressed through the ergonomic facade: Result-returning setup,
 // value-handle Player/Unit, and in-game (visible) coordinates. The Layer-1-only version (raw op2::abi) is
@@ -17,7 +17,7 @@ using namespace op2::mission;
 using op2::MapID;
 
 // =====================================================================================================================
-// Mission metadata — the exact exports Outpost 2 / op2ext read to list and configure the mission.
+// Mission metadata - the exact exports Outpost 2 / op2ext read to list and configure the mission.
 // MapName / TechtreeName must exist in your install ("on6_01.map" + "MULTITEK.TXT" is the stock Colony combo).
 // =====================================================================================================================
 extern "C" __declspec(dllexport) char      LevelDesc[]    = "TitanAPI Test Mission";
@@ -46,7 +46,7 @@ static op2::Unit g_enemyLynx;    // player 1 enemy laser Lynx @73,88 (target of 
 static op2::Unit g_empLynx;      // player 0 EMP Lynx (EMPs the enemy laser Lynx)
 static op2::Unit g_empLynx2;     // player 0 second EMP Lynx
 static op2::Unit g_reprogSpider; // player 0 Spider (reprograms the EMP'd enemy Lynx -> take ownership)
-static op2::Unit g_redScout;     // player 1 (red) Scout — patrols 58,67 <-> 68,67
+static op2::Unit g_redScout;     // player 1 (red) Scout - patrols 58,67 <-> 68,67
 static op2::Unit g_orgBeacon;    // player 0 ORGANIC mining: the (initially unsurveyed) ore beacon
 static op2::Unit g_surveyor;     // player 0 Robo-Surveyor (surveys the beacon by reaching it)
 static op2::Unit g_roboMiner;    // player 0 Robo-Miner (builds the mine on the surveyed beacon)
@@ -55,21 +55,21 @@ static op2::Unit g_orgTruck1;    // player 0 Cargo Truck for the organic mine
 static op2::Unit g_orgTruck2;    // player 0 Cargo Truck for the organic mine
 static op2::Unit g_earthworker;  // player 0 Earthworker (builds a tube at mark 1)
 
-// Module 7 — mission lifecycle / save state. This whole struct is registered with GetSaveRegions, so OP2 saves
+// Module 7 - mission lifecycle / save state. This whole struct is registered with GetSaveRegions, so OP2 saves
 // & restores it across a save/load. On a fresh start InitProc runs and stamps `magic`; on loading a saved game
-// InitProc does NOT run, but this struct comes back with the saved values — so `aiProcTicks` keeps counting from
+// InitProc does NOT run, but this struct comes back with the saved values - so `aiProcTicks` keeps counting from
 // where the save was taken (the proof that save state persists). `kMagic` distinguishes a real restore from a
 // zero-initialized struct.
 struct MissionState {
   unsigned magic;        // kMagic once InitProc has stamped it
   int      initProcRuns; // how many times InitProc ran (1 on a fresh start; stays 1 across reloads)
-  int      aiProcTicks;  // counts every AIProc call — persists across save/load
+  int      aiProcTicks;  // counts every AIProc call - persists across save/load
 };
 static constexpr unsigned kMissionMagic = 0x71700007u;   // 'Titan' mission-state marker
 static MissionState g_state{};                            // zero-initialized; lives for the DLL's lifetime
 
 // =====================================================================================================================
-// API SELF-TEST — exercises every TitanAPI facade function in-game and logs [PASS]/[FAIL] + a summary.
+// API SELF-TEST - exercises every TitanAPI facade function in-game and logs [PASS]/[FAIL] + a summary.
 // Run once from the live game loop (AIProc). For orders, PASS = the facade built the packet and the engine
 // accepted it (orders apply asynchronously, so this is an "accepted" check, not "completed"). For state
 // reads, PASS = the value is sane. Creates its own unit roster in a test area so it is self-contained.
@@ -92,7 +92,7 @@ static void chkR(const op2::Result<void>& r, const char* name) {
 }
 
 /// Record an EXPECTED-FAILURE check: PASS when `r` is an error of exactly `want` (verifies the error-as-value
-/// path — the class of bug this facade was built to prevent). Works for Result<void> and Result<Unit>.
+/// path - the class of bug this facade was built to prevent). Works for Result<void> and Result<Unit>.
 template <class T>
 static void chkErr(const op2::Result<T>& r, op2::Status want, const char* name) {
   const bool good = !r.has_value() && (r.error().status == want);
@@ -139,7 +139,7 @@ static void run() {
   { auto beacon = op2::Game::createMine({ 60, 100 });
     chk(bool(beacon) && beacon->valid(), "Game::createMine");
     if (beacon) { chkR(beacon->survey(0), "Unit::survey"); chk(beacon->isSurveyed(0), "Unit::isSurveyed"); } }
-  // (Game::createTube / createTubeLine are exercised by the colony tube line in InitProc — no stray tubes here.)
+  // (Game::createTube / createTubeLine are exercised by the colony tube line in InitProc - no stray tubes here.)
 
   // ---- triggers (Module 4): factories return valid handles; enable/disable round-trips ----
   chk(op2::onMark(999, [] {}).valid(), "onMark creates a trigger");
@@ -151,11 +151,11 @@ static void run() {
   chk(op2::onResearch(2101).valid(),                                                "onResearch creates a trigger");
   chk(op2::onResource(op2::Resource::CommonOre, op2::Compare::GreaterEqual, 1000).valid(),
       "onResource creates a trigger");
-  // NOTE: onOperational is intentionally NOT exercised here — creating a CreateOperationalTrigger can flip the
+  // NOTE: onOperational is intentionally NOT exercised here - creating a CreateOperationalTrigger can flip the
   // game into "Last One Standing" victory mode, which then eliminates any player without an operational CC (the
   // AI's CC is unpowered), ending the mission instantly. It's a real factory, just one with a global side
   // effect, so it's unsafe to fire blindly in a self-test.
-  // (victoryWhen/defeatWhen are exercised for real in InitProc — not here, so the self-test leaves no stray
+  // (victoryWhen/defeatWhen are exercised for real in InitProc - not here, so the self-test leaves no stray
   // objective in the list.)
   { op2::Trigger t = op2::onBuildingCount(0, op2::Compare::GreaterEqual, 0);
     const bool wasOn = t.isEnabled();
@@ -163,7 +163,7 @@ static void run() {
     t.enable();  const bool onAgain = t.isEnabled();
     chk(wasOn && offNow && onAgain, "Trigger enable/disable/isEnabled"); }
 
-  // ---- world globals (Module 6): non-destructive reads only — real disasters are demoed via the mark-8 meteor ----
+  // ---- world globals (Module 6): non-destructive reads only - real disasters are demoed via the mark-8 meteor ----
   { const int r = op2::Game::getRand(100); chk(r >= 0 && r < 100, "Game::getRand in [0,range)"); }
   chk(op2::Game::numPlayers() >= 1, "Game::numPlayers() >= 1");
 
@@ -171,11 +171,11 @@ static void run() {
   chk(op2::Game::createUnit(MapID::Lynx, { 47, 98 }, op2::Game::player(0)).has_value(),
       "createUnit(Lynx, no weapon) auto-arms (no crash)");
 
-  // GameMap (Module 6): a terrain read — also exercises passing a Location struct by value to a __fastcall.
+  // GameMap (Module 6): a terrain read - also exercises passing a Location struct by value to a __fastcall.
   chk(op2::GameMap::getTile({ 50, 80 }) >= 0, "GameMap::getTile");
   chk(op2::Game::createWreckage({ 52, 78 }, 8000).has_value(), "Game::createWreckage");
   // Tile-property reads (offsets pinned by probe). cellType is a 5-bit value (0..31); dims are positive; and
-  // reading the player CC's own tile (48,80) must report a wall/building — validates coords + bit extraction.
+  // reading the player CC's own tile (48,80) must report a wall/building - validates coords + bit extraction.
   chk(int(op2::GameMap::getCellType({ 50, 80 })) >= 0 && int(op2::GameMap::getCellType({ 50, 80 })) < 32,
       "GameMap::getCellType in range");
   chk(op2::GameMap::getWidth() > 0 && op2::GameMap::getHeight() > 0, "GameMap::getWidth/getHeight > 0");
@@ -186,11 +186,11 @@ static void run() {
   { (void)g_aiLynx.isBusy(); (void)g_aiLynx.isLightsOn(); (void)g_aiLynx.action();
     chk(true, "Unit isBusy/isLightsOn/action read (no crash)"); }
 
-  // ---- AI groups (Module 5): create a FightGroup — validates the sret + _Player-by-value factory ABI ----
+  // ---- AI groups (Module 5): create a FightGroup - validates the sret + _Player-by-value factory ABI ----
   { op2::Group g = op2::createFightGroup(op2::Game::player(1));
     chk(g.valid(), "createFightGroup returns a valid group");
     chk(g.totalUnitCount() == 0, "FightGroup::totalUnitCount (empty)");
-    // FightGroup strategy setters on an empty group — exercise the ABI (no units -> no behavior change).
+    // FightGroup strategy setters on an empty group - exercise the ABI (no units -> no behavior change).
     g.setIdleRect({ 60, 66 }, { 66, 72 });  g.setFollowMode(0);  g.clearGuardedRects();
     g.setTargCount(MapID::Lynx, MapID::Laser, 0);  g.clearTargCount();
     chk(true, "FightGroup setIdleRect/setFollowMode/setTargCount (no crash)");
@@ -206,7 +206,7 @@ static void run() {
     chk(true,                        "BuildingGroup setBuildRect/recordBuilding (no crash)"); }
   { op2::Pinwheel pw = op2::createPinwheel(op2::Game::player(1));
     chk(pw.valid(),                  "createPinwheel returns a valid Pinwheel (sret + _Player by-ref)");
-    // CONFIGURE the waves (routes + composition) — now safe to do (v0.5.40). We still don't ARM the timer here
+    // CONFIGURE the waves (routes + composition) - now safe to do (v0.5.40). We still don't ARM the timer here
     // (a live wave would spawn AI attackers mid-self-test), but defining points+comp exercises the new ABI and
     // is exactly what makes a Pinwheel safe to arm in a real mission.
     pw.setPoints({ { { 62, 66 }, { 58, 78 }, { 54, 86 }, { 50, 90 }, 0, 0, 0 } });
@@ -227,7 +227,7 @@ static void run() {
     fg.addUnits(reinforce);
     chk(fg.totalUnitCount() >= 1,    "Group::addUnits(UnitBlock) populated the group"); }
 
-  // ---- Player reads (OP2Lua parity) — validates the new PlayerImpl offsets (rareOre@36, isHuman@40) ----
+  // ---- Player reads (OP2Lua parity) - validates the new PlayerImpl offsets (rareOre@36, isHuman@40) ----
   { op2::Player p0 = op2::Game::player(0), p1 = op2::Game::player(1);
     chk(p0.commonOre() >= 0 && p0.population() >= 0, "Player::commonOre/population read");
     chk(p0.isHuman() && !p0.isAI(),  "Player::isHuman (player 0 = human)");
@@ -328,7 +328,7 @@ static void run() {
   { const int d = int(p0.difficulty()); chk(d >= 0 && d <= 2, "Player::difficulty in {Easy,Normal,Hard}"); }
   { const bool de = op2::Game::disastersEnabled(); (void)de;  chk(true, "Game::disastersEnabled (no crash)"); }
   chkR(op2::Game::createMeteor({ 88, 30 }, 2, /*now=*/true), "Game::createMeteor(now=true) immediate strike");
-  op2::Game::setLavaSpeed(45);  op2::Game::setBlightSpeed(45);   // OP2 "Slow" — global side effect, harmless here
+  op2::Game::setLavaSpeed(45);  op2::Game::setBlightSpeed(45);   // OP2 "Slow" - global side effect, harmless here
   chk(true,                                     "Game::setLavaSpeed/setBlightSpeed (no crash)");
 
   // ---- v0.5.30: perception helpers (beacons / find_build_site / can_place) ----
@@ -375,7 +375,7 @@ static void run() {
   chkR(p0.setWorkers(p0.workers()),             "Player::setWorkers");
   chkR(p0.setScientists(p0.scientists()),       "Player::setScientists");
   chkR(p0.setKids(p0.kids()),                   "Player::setKids");
-  // Player::units(type) — player-scoped enumeration (the last OP2Lua parity item).
+  // Player::units(type) - player-scoped enumeration (the last OP2Lua parity item).
   { auto pAll = p0.units(); auto pLynx = p0.units(MapID::Lynx);
     chk(!pAll.empty(),                          "Player::units() non-empty for the live colony");
     chk(pLynx.size() <= pAll.size(),            "Player::units(type) is a subset of units()"); }
@@ -429,11 +429,11 @@ extern "C" int __stdcall DllMain(void* /*hinst*/, unsigned long reason, void* /*
   return 1;
 }
 
-/// Set up a Plymouth human colony and place a small base — all through the TitanAPI facade.
+/// Set up a Plymouth human colony and place a small base - all through the TitanAPI facade.
 /// The real work lives here; the exported InitProc wraps it in an SEH guard (see below).
 static void initProcImpl() {
   op2::log::line("InitProc: enter (Layer 2 facade)");
-  // Module 7: stamp the save-state on a FRESH start. (On a loaded save, InitProc is NOT called — the saved
+  // Module 7: stamp the save-state on a FRESH start. (On a loaded save, InitProc is NOT called - the saved
   // MissionState is restored instead, so this stamp + the aiProcTicks count carry through the reload.)
   g_state.magic = kMissionMagic;
   g_state.initProcRuns += 1;
@@ -444,7 +444,7 @@ static void initProcImpl() {
   op2::Game::addMessage("Welcome to TitanAPI");
   step(op2::Game::forceMoraleGood(-1), "forceMoraleGood(-1) [steady morale]");
   // (The engine->C++ time-trigger callback is still demonstrated by the mark-8 meteor below. Victory/defeat
-  // conditions are created at the END of InitProc — AFTER the colonies exist — so count triggers don't latch.)
+  // conditions are created at the END of InitProc - AFTER the colonies exist - so count triggers don't latch.)
 
   // ---- player setup ----
   op2::Player p0 = op2::Game::player(0);
@@ -476,7 +476,7 @@ static void initProcImpl() {
     op2::log::line("  ! scout create FAILED");
   }
 
-  // A ConVec carrying an Agridome kit — AIProc will order it to build (exercises the MapObject read path:
+  // A ConVec carrying an Agridome kit - AIProc will order it to build (exercises the MapObject read path:
   // build() reads the carried kit + looks up its footprint from the type table).
   if (auto cv = op2::Game::createUnit(MapID::ConVec, { 52, 86 }, p0, MapID::Agridome)) {
     g_buildConvec = *cv;
@@ -517,7 +517,7 @@ static void initProcImpl() {
     step(g_orgBeacon.survey(0), "beacon.survey(player 0)");
     op2::log::linef("  organic beacon isSurveyed(p0)=%d (expect 1)", g_orgBeacon.isSurveyed(0) ? 1 : 0);
     recordU(op2::Game::createUnit(MapID::RoboMiner,        { 39, 91 }, p0), g_roboMiner,  "robo-miner");
-    // The organic mine's smelter + trucks — placed now; the trucks get routed once the Robo-Miner has
+    // The organic mine's smelter + trucks - placed now; the trucks get routed once the Robo-Miner has
     // actually built the mine (AIProc auto-detects it; see below).
     recordU(op2::Game::createUnit(MapID::CommonOreSmelter, { 31, 90 }, p0), g_orgSmelter, "organic smelter");
     recordU(op2::Game::createUnit(MapID::CargoTruck,       { 32, 92 }, p0), g_orgTruck1,  "organic truck1");
@@ -526,7 +526,7 @@ static void initProcImpl() {
     op2::log::line("  ! organic beacon createMine FAILED");
   }
 
-  // Earthworker — AIProc orders it to build a tube at 61,98 once the clock reaches mark 1 (tick 100).
+  // Earthworker - AIProc orders it to build a tube at 61,98 once the clock reaches mark 1 (tick 100).
   recordU(op2::Game::createUnit(MapID::Earthworker, { 61, 94 }, p0), g_earthworker, "earthworker");
 
   // ---- player 1: a computer-controlled (AI) Eden outpost ----
@@ -547,7 +547,7 @@ static void initProcImpl() {
   place1(MapID::CommandCenter, 70, 70);
   place1(MapID::CommonStorage, 73, 70);
   place1(MapID::ConVec,        72, 74);
-  // Keep one AI Lynx (Laser) so AIProc can order it too — proves orders route to player 1, not player 0.
+  // Keep one AI Lynx (Laser) so AIProc can order it too - proves orders route to player 1, not player 0.
   // It's also the target of the EMP-capture demo below.
   if (auto lynx = op2::Game::createUnit(MapID::Lynx, { 71, 74 }, p1, MapID::Laser)) {
     g_aiLynx = *lynx;
@@ -557,7 +557,7 @@ static void initProcImpl() {
   }
 
   // EMP-capture demo (classic OP2 tactic), all clustered ~(70-73, 88-91): a player-0 EMP Lynx EMPs a nearby
-  // enemy laser Lynx, then a player-0 Spider reprograms it — player 0 takes ownership. The EMP Lynx is right
+  // enemy laser Lynx, then a player-0 Spider reprograms it - player 0 takes ownership. The EMP Lynx is right
   // next to the target so it EMPs it immediately; the reprogram fires once the target reads EMP'd (AIProc).
   recordU(op2::Game::createUnit(MapID::Lynx,   { 73, 88 }, p1, MapID::Laser), g_enemyLynx,    "enemy laser lynx");
   recordU(op2::Game::createUnit(MapID::Lynx,   { 70, 91 }, p0, MapID::EMP),   g_empLynx,      "emp lynx");
@@ -566,19 +566,19 @@ static void initProcImpl() {
   // Red (AI) Scout that patrols the AI's northern approach.
   recordU(op2::Game::createUnit(MapID::Scout,  { 63, 67 }, p1),               g_redScout,     "red scout (patrol)");
 
-  // DIAGNOSTIC (victory-on-load): count each player's LIVE buildings right now, via Module 3 enumeration —
+  // DIAGNOSTIC (victory-on-load): count each player's LIVE buildings right now, via Module 3 enumeration -
   // ground truth for what onBuildingCount should see. If player1 reads 0 here, the colony victory is correct
   // to fire; if it reads 2, the trigger/eval is the problem.
-  // FAILURE condition — you lose if your Command Center is destroyed.
+  // FAILURE condition - you lose if your Command Center is destroyed.
   op2::defeatWhen(op2::onOperational(0, MapID::CommandCenter, op2::Compare::Equal, 0));
-  // NOTE: OP2 *AND*s its victory conditions — the mission ends only when EVERY victory condition is met.
+  // NOTE: OP2 *AND*s its victory conditions - the mission ends only when EVERY victory condition is met.
   // (Proven the hard way: a never-firing "display" victoryWhen sitting alongside op2::win() holds the
-  // mission open even after op2::win() goes green — see the v0.5.23 log, CC destroyed at tick 1603 but no
+  // mission open even after op2::win() goes green - see the v0.5.23 log, CC destroyed at tick 1603 but no
   // end.) So we register NO standalone display victories. The ONE and only victory is op2::win() in AIProc;
   // being the sole victory, it ends the mission the instant it fires.  ← Kill CC = Win.
   op2::log::line("  defeat condition set; victory is the sole op2::win() path in AIProc");
 
-  // Module 6: a timed DISASTER — a large meteor strikes near the AI base at mark 8 (tick 800). Proves the
+  // Module 6: a timed DISASTER - a large meteor strikes near the AI base at mark 8 (tick 800). Proves the
   // disaster API end-to-end: engine fires the time trigger -> our C++ lambda -> Game::createMeteor.
   op2::onMark(8, [] {
     const op2::Result<void> r = op2::Game::createMeteor({ 66, 72 }, /*size*/ 0);
@@ -590,7 +590,7 @@ static void initProcImpl() {
   op2::log::line("InitProc: returning 1 (success)");
 }
 
-/// Exported entry point — runs initProcImpl under an SEH guard so a fault is logged (not silent) and the
+/// Exported entry point - runs initProcImpl under an SEH guard so a fault is logged (not silent) and the
 /// engine still gets its return value.
 extern "C" __declspec(dllexport) int InitProc() {
   op2::crash::guard("InitProc", &initProcImpl);
@@ -604,7 +604,7 @@ static void aiProcImpl() {
   static bool first = true;
   if (first) {
     first = false;
-    op2::log::line("AIProc: first call — mission update loop is running");
+    op2::log::line("AIProc: first call - mission update loop is running");
     // Module 7: detect whether this session is a FRESH start or a LOADED save. On a fresh start InitProc ran
     // and stamped kMissionMagic; on a load, InitProc didn't run this session but the restored save region still
     // carries the magic + a non-trivial aiProcTicks from when the game was saved.
@@ -613,19 +613,19 @@ static void aiProcImpl() {
                       (g_state.aiProcTicks > 1) ? "LOADED from save" : "fresh start",
                       g_state.initProcRuns, g_state.aiProcTicks);
     // Module 1 order API: move one unit per player, through the command-packet path. Each dispatches to its
-    // OWN player's ProcessCommandPacket — proves the owner-carry mechanism routes correctly.
+    // OWN player's ProcessCommandPacket - proves the owner-carry mechanism routes correctly.
     const op2::Result<void> m0 = g_scout.move({ 55, 84 });   // player 0
     if (m0) op2::log::linef("  g_scout.move(55,84): ok (id=%d)", g_scout.id());
     else    op2::log::linef("  ! g_scout.move FAILED: %.*s",
                             int(m0.error().what.size()), m0.error().what.data());
 
-    const op2::Result<void> m1 = g_aiLynx.move({ 65, 74 });  // player 1 (AI) — within its relocated base
+    const op2::Result<void> m1 = g_aiLynx.move({ 65, 74 });  // player 1 (AI) - within its relocated base
     if (m1) op2::log::linef("  g_aiLynx.move(65,74): ok (id=%d)", g_aiLynx.id());
     else    op2::log::linef("  ! g_aiLynx.move FAILED: %.*s",
                             int(m1.error().what.size()), m1.error().what.data());
 
     // Module 5: form an AI combat group around the Lynx and send it to HUNT the human player. This is the
-    // "script an AI" path — the engine commands the GROUP strategically, instead of us ordering each unit.
+    // "script an AI" path - the engine commands the GROUP strategically, instead of us ordering each unit.
     if (g_aiLynx.valid()) {
       g_aiFightGroup = op2::createFightGroup(op2::Game::player(1));
       g_aiFightGroup.takeUnit(g_aiLynx);
@@ -695,7 +695,7 @@ static void aiProcImpl() {
       const bool ok2 = g_orgTruck2.mine(mine, g_orgSmelter).has_value();
       orgRouted = true;
       op2::Game::addMessage("Mine operational");   // sending an in-game message is one call
-      op2::log::linef("  organic mine built (id=%d) — routed trucks (t1=%s t2=%s)",
+      op2::log::linef("  organic mine built (id=%d) - routed trucks (t1=%s t2=%s)",
                       mineId, ok1 ? "ok" : "FAIL", ok2 ? "ok" : "FAIL");
     }
   }
@@ -719,7 +719,7 @@ static void aiProcImpl() {
       const op2::Location l = u.location();
       op2::log::linef("  [mark %d] Scout id=%d owner=%d at vis(%d,%d)", m, u.id(), u.ownerId(), l.x, l.y);
     }
-    // PROGRAMMATIC VICTORY — two win conditions, via the Module 3 enumeration (skips dead units):
+    // PROGRAMMATIC VICTORY - two win conditions, via the Module 3 enumeration (skips dead units):
     //   (1) the AI's Command Center is destroyed, OR (2) ALL the AI's buildings are destroyed.
     static bool s_won = false;
     if (!s_won) {
@@ -747,7 +747,7 @@ static void aiProcImpl() {
   }
 }
 
-/// Exported per-frame entry point — runs aiProcImpl under an SEH guard (a fault is logged, the game survives).
+/// Exported per-frame entry point - runs aiProcImpl under an SEH guard (a fault is logged, the game survives).
 extern "C" __declspec(dllexport) void AIProc() {
   op2::crash::guard("AIProc", &aiProcImpl);
 }
@@ -759,7 +759,7 @@ extern "C" __declspec(dllexport) void GetSaveRegions(op2::mission::SaveRegion* p
   if (pSave) { pSave->pData = &g_state; pSave->size = sizeof(g_state); }
 }
 
-// Module 7 — typed save/load over StreamIO (OPU 1.4.0+). On save we stash a tag string + the live tick count;
+// Module 7 - typed save/load over StreamIO (OPU 1.4.0+). On save we stash a tag string + the live tick count;
 // on load we read them back and log them. SEH-guarded: StreamIO's typed Write/Read go through the engine vtable
 // (slots 6/7), so if that slot index is ever wrong the fault is logged and the save/load still completes. The
 // crash guard takes a plain function pointer (its __try can't hold capturing lambdas), so the StreamIO* is
@@ -767,14 +767,14 @@ extern "C" __declspec(dllexport) void GetSaveRegions(op2::mission::SaveRegion* p
 static void* g_saveStream = nullptr;
 static void onSaveGameImpl() {
   op2::mission::Stream s{ g_saveStream };
-  const bool okStr = s.writeString("TitanAPI");                 // non-virtual entry — always safe
+  const bool okStr = s.writeString("TitanAPI");                 // non-virtual entry - always safe
   const int  tick  = op2::Game::tick();
   const bool okVal = s.writeValue(tick);                        // virtual Write (vtable slot 6)
   op2::log::linef("OnSaveGame: wrote tag(%s) tick=%d val(%s)", okStr ? "ok" : "FAIL", tick, okVal ? "ok" : "FAIL");
 }
 static void onLoadSavedGameImpl() {
   op2::mission::Stream s{ g_saveStream };
-  const char* tag = s.readString();                            // non-virtual entry — always safe
+  const char* tag = s.readString();                            // non-virtual entry - always safe
   int tick = -1; const bool okVal = s.readValue(tick);         // virtual Read (vtable slot 7)
   op2::log::linef("OnLoadSavedGame: tag=%s saved-tick=%d val(%s); restored aiProcTicks=%d",
                   tag ? tag : "(null)", tick, okVal ? "ok" : "FAIL", g_state.aiProcTicks);
@@ -790,9 +790,9 @@ extern "C" __declspec(dllexport) void OnLoadSavedGame(op2::mission::OnLoadSavedG
   op2::crash::guard("OnLoadSavedGame", &onLoadSavedGameImpl);
 }
 
-// Module 7 — the remaining lifecycle callbacks (OPU 1.4.0+). Simple log demos that prove each hook fires; they
+// Module 7 - the remaining lifecycle callbacks (OPU 1.4.0+). Simple log demos that prove each hook fires; they
 // only read fields of the args struct OPU hands us (and OnChat's null-checked engine string), so they're safe
-// without a per-call SEH guard — the process-wide unhandled-exception filter is the backstop.
+// without a per-call SEH guard - the process-wide unhandled-exception filter is the backstop.
 extern "C" __declspec(dllexport) int OnLoadMission(op2::mission::OnLoadMissionArgs*) {
   op2::log::line("OnLoadMission: DLL loaded");   return 1;   // return 0 would abort the mission load
 }
@@ -806,6 +806,6 @@ extern "C" __declspec(dllexport) void OnChat(op2::mission::OnChatArgs* a) {
   if (a && a->pText) op2::log::linef("OnChat: player %d: \"%s\"", a->playerNum, a->pText);
 }
 extern "C" __declspec(dllexport) void OnGameCommand(op2::mission::OnGameCommandArgs* a) {
-  static bool first = true;   // fires for EVERY command packet — log only the first to avoid flooding the log
+  static bool first = true;   // fires for EVERY command packet - log only the first to avoid flooding the log
   if (first && a) { first = false; op2::log::linef("OnGameCommand: first command packet processed (player %d)", a->playerNum); }
 }

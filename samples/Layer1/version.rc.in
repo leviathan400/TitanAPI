@@ -1,5 +1,5 @@
-// version.rc.in — Windows VERSIONINFO resource, configured by CMake (configure_file @ONLY).
-// Fills the Details tab (File description / Copyright / version). Adds no DLL imports — stays KERNEL32-only.
+// version.rc.in - Windows VERSIONINFO resource, configured by CMake (configure_file @ONLY).
+// Fills the Details tab (File description / Copyright / version). Adds no DLL imports - stays KERNEL32-only.
 // Numeric fields use literals so no header include is needed: FILEOS 0x4 = VOS__WINDOWS32, FILETYPE 0x2 = VFT_DLL.
 
 1 VERSIONINFO

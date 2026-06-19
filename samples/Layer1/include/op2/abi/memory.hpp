@@ -1,5 +1,5 @@
 #pragma once
-// op2/abi/memory.hpp — hand-written Layer-1 ABI substrate (NOT generated).
+// op2/abi/memory.hpp - hand-written Layer-1 ABI substrate (NOT generated).
 //
 // Turns fixed Outpost2.exe addresses into callable functions / usable data, relocated from the preferred
 // base (0x00400000) to the actual module base, so it works even if the exe was rebased (ASLR). This is our
@@ -9,7 +9,7 @@
 // Mechanism (full write-up: re-reference/ABI-MECHANISM.md):
 //   actualPtr = moduleBase + (address - kImageBase)        // moduleBase == kImageBase in the usual case
 //   * Member functions are called via a __thiscall function pointer whose FIRST explicit parameter is
-//     `this` (MSVC passes it in ECX) — the clean technique; no __fastcall + dummy-EDX hack.
+//     `this` (MSVC passes it in ECX) - the clean technique; no __fastcall + dummy-EDX hack.
 //   * The module handle is resolved lazily via a function-local static, so abi calls are safe even from
 //     static initializers (avoids the static-init-order fiasco).
 //

@@ -1,22 +1,22 @@
 #pragma once
-// command.hpp — the Outpost 2 command-packet wire structs (Layer 1 / op2::abi::raw).
+// command.hpp - the Outpost 2 command-packet wire structs (Layer 1 / op2::abi::raw).
 //
 // A "command" is one CommandPacket: a 14-byte header + a 102-byte type-dependent payload union. It is the
-// unit of lockstep multiplayer — clients exchange these packets, not state — and the engine applies a unit
+// unit of lockstep multiplayer - clients exchange these packets, not state - and the engine applies a unit
 // order by building one of these and handing it to ProcessCommandPacket. So this header is the spec the
 // Layer 2 order API is built on (see design/FACADE-DESIGN.md, re-reference/command-packets.md).
 //
 // FACTS, not borrowed code: these layouts (sizes/offsets/field order) are properties of Outpost2.exe's wire
 // format, reverse-engineered by the community. Field names/comments here are our own. Every layout is pinned
-// by static_assert at the bottom — CommandPacket is exactly 116 bytes.
+// by static_assert at the bottom - CommandPacket is exactly 116 bytes.
 //
 // SIZE NOTE: the total is 116 (payload 0x66 = 102), per the battle-tested OP2MissionSDK Structs.h. TethysAPI
 // reconstructs it as 113 (payload 99) by summing its CommandPacketData union (max member ChatCommand = 99).
-// We follow OP2MissionSDK — the larger, proven value — so the struct never under-allocates on a bulk-copy
+// We follow OP2MissionSDK - the larger, proven value - so the struct never under-allocates on a bulk-copy
 // (network/playback/save) path. Each typed payload below still fits (all < 102). See op2missionsdk-api.md.
 //
 // Everything is #pragma pack(1): no padding, enums sit at byte offsets. unitID[1] / waypoint[1] are FLEXIBLE
-// arrays — the [1] is a placeholder; a real packet writes numUnits ids / numWaypoints waypoints inline.
+// arrays - the [1] is a placeholder; a real packet writes numUnits ids / numWaypoints waypoints inline.
 
 #include <cstdint>
 #include <cstddef>             // offsetof
@@ -47,7 +47,7 @@ struct Waypoint {
 };
 
 /// Map rectangle as four 16-bit tile coordinates. Inclusivity differs per command (BuildWall's BR is NOT
-/// inclusive — see command-packets.md §4); the order API normalizes that.
+/// inclusive - see command-packets.md §4); the order API normalizes that.
 struct PackedMapRect {
   u16 x1, y1, x2, y2;
 };
@@ -73,7 +73,7 @@ struct PackedPlayerBitmask {
 };
 
 // ---------------------------------------------------------------------------------------------------------
-// Unit-list headers — most orders begin with one of these (Game\CommandPacket.h)
+// Unit-list headers - most orders begin with one of these (Game\CommandPacket.h)
 // ---------------------------------------------------------------------------------------------------------
 
 /// Exactly one unit.
@@ -82,7 +82,7 @@ struct SingleUnitSimpleCommand {
 };
 
 /// A LIST of units: numUnits, then unitID[0..numUnits-1] inline. The single helper that fills this header is
-/// where TethysAPI's DoMiningRoute bug lived (it wrote numUnits = the unit id) — the order API owns it now.
+/// where TethysAPI's DoMiningRoute bug lived (it wrote numUnits = the unit id) - the order API owns it now.
 struct SimpleCommand {
   u8  numUnits;
   u16 unitID[1];          // flexible array
@@ -95,7 +95,7 @@ struct MoveCommand : SimpleCommand {
 };
 
 // ---------------------------------------------------------------------------------------------------------
-// Payload structs (Game\CommandPacket.h) — declaration order mirrors the source
+// Payload structs (Game\CommandPacket.h) - declaration order mirrors the source
 // ---------------------------------------------------------------------------------------------------------
 
 /// Mine -> smelter -> mine cargo loop (3 waypoints) plus the route's mine/smelter indices and unit ids.
@@ -270,7 +270,7 @@ struct CommandPacket {
 #pragma pack(pop)
 
 // ---------------------------------------------------------------------------------------------------------
-// Layout pins — these are the whole point of this header. If any fires, the wire format diverged.
+// Layout pins - these are the whole point of this header. If any fires, the wire format diverged.
 // ---------------------------------------------------------------------------------------------------------
 
 // Value types
@@ -309,7 +309,7 @@ static_assert(sizeof(QuitCommand)            ==  2, "QuitCommand");
 static_assert(sizeof(AllyCommand)            ==  4, "AllyCommand");
 static_assert(sizeof(MachineSettingsCommand) ==  8, "MachineSettingsCommand");
 
-// The packet itself — header offsets + total size.
+// The packet itself - header offsets + total size.
 static_assert(sizeof(CommandPacketData) == CommandPacketDataSize, "CommandPacketData == 102");
 static_assert(sizeof(CommandPacket)     == CommandPacketSize,     "CommandPacket == 116");
 static_assert(offsetof(CommandPacket, type)       == 0x00, "type @ 0x00");

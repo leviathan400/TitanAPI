@@ -1,16 +1,16 @@
-# TitanAPI — the test-mission DLL (demonstrates the Layer 2 facade over op2::abi against the live game).
+# TitanAPI - the test-mission DLL (demonstrates the Layer 2 facade over op2::abi against the live game).
 # 32-bit / MSVC / C++23. Produces cTitanAPI.dll (the leading 'c' files it under Colony Games).
 #
-# Configure & build (Visual Studio generator — note the REQUIRED 32-bit platform):
+# Configure & build (Visual Studio generator - note the REQUIRED 32-bit platform):
 #     cmake -S . -B build -G "Visual Studio 18 2026" -A Win32
 #     cmake --build build --config Release
 # Output: build/Release/cTitanAPI.dll
 
 cmake_minimum_required(VERSION 3.21)
-project(TitanAPI VERSION 0.5.43 LANGUAGES CXX RC DESCRIPTION "Outpost 2 TitanAPI test mission DLL")
+project(TitanAPI VERSION 0.6.0 LANGUAGES CXX RC DESCRIPTION "Outpost 2 TitanAPI test mission DLL")
 
 if(NOT MSVC)
-  message(FATAL_ERROR "Outpost 2 is a 32-bit MSVC target — build with MSVC (cl.exe).")
+  message(FATAL_ERROR "Outpost 2 is a 32-bit MSVC target - build with MSVC (cl.exe).")
 endif()
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
   message(FATAL_ERROR

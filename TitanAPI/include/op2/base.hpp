@@ -1,10 +1,10 @@
 #pragma once
-// op2/base.hpp — Module 8: declarative base layout (the OP2Helper "BaseBuilder", modernized for C++23).
+// op2/base.hpp - Module 8: declarative base layout (the OP2Helper "BaseBuilder", modernized for C++23).
 //
-// Describe a colony as DATA — beacons, buildings, tube/wall runs, vehicles — then stamp the whole thing onto the
+// Describe a colony as DATA - beacons, buildings, tube/wall runs, vehicles - then stamp the whole thing onto the
 // map for a player with one call. This is the author-ergonomics layer: instead of a hundred createUnit() calls,
 // you write a BaseLayout once and reuse it (the `offset` arg lets the same layout seed several bases at different
-// map locations — handy for symmetric multiplayer starts). Coordinates are VISIBLE tiles throughout.
+// map locations - handy for symmetric multiplayer starts). Coordinates are VISIBLE tiles throughout.
 //
 // It's pure Layer-2 sugar: createBase just drives Game::createMine / createUnit / createTubeLine / createWallLine,
 // so it inherits all their safety (off-map rejection, the weaponless-combat-vehicle auto-arm, etc.).

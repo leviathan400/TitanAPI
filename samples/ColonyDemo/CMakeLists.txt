@@ -1,4 +1,4 @@
-# ColonyDemo — a TitanAPI sample mission showcasing the Layer 2 facade (Modules 1-3): a two-player colony
+# ColonyDemo - a TitanAPI sample mission showcasing the Layer 2 facade (Modules 1-3): a two-player colony
 # with unit orders, building, scripted + organic mining, an EMP-capture, a timed Earthworker, range-based
 # enumeration, messages and steady morale. Snapshot of the dev test mission.
 #
@@ -13,7 +13,7 @@ cmake_minimum_required(VERSION 3.21)
 project(ColonyDemo VERSION 0.3.0 LANGUAGES CXX RC DESCRIPTION "TitanAPI sample: full colony demo")
 
 if(NOT MSVC)
-  message(FATAL_ERROR "Outpost 2 is a 32-bit MSVC target — build with MSVC (cl.exe).")
+  message(FATAL_ERROR "Outpost 2 is a 32-bit MSVC target - build with MSVC (cl.exe).")
 endif()
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
   message(FATAL_ERROR "Must be a 32-bit (x86) build. Re-configure with -A Win32.")

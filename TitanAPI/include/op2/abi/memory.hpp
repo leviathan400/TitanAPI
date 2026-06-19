@@ -1,5 +1,5 @@
 #pragma once
-// op2/abi/memory.hpp — hand-written Layer-1 ABI substrate (NOT generated).
+// op2/abi/memory.hpp - hand-written Layer-1 ABI substrate (NOT generated).
 //
 // Turns fixed Outpost2.exe addresses into callable functions / usable data, relocated from the preferred
 // base (0x00400000) to the actual module base, so it works even if the exe was rebased (ASLR). This is our
@@ -9,7 +9,7 @@
 // Mechanism (full write-up: re-reference/ABI-MECHANISM.md):
 //   actualPtr = moduleBase + (address - kImageBase)        // moduleBase == kImageBase in the usual case
 //   * Member functions are called via a __thiscall function pointer whose FIRST explicit parameter is
-//     `this` (MSVC passes it in ECX) — the clean technique; no __fastcall + dummy-EDX hack.
+//     `this` (MSVC passes it in ECX) - the clean technique; no __fastcall + dummy-EDX hack.
 //   * The module handle is resolved lazily via a function-local static, so abi calls are safe even from
 //     static initializers (avoids the static-init-order fiasco).
 //
@@ -63,11 +63,11 @@ template <std::uintptr_t Address, class R, class... A>
 R callFast(A... args) { return reinterpret_cast<R(__fastcall*)(A...)>(reloc(Address))(args...); }
 
 /// Call a __fastcall function that returns a C++ object BY VALUE via the hidden return-pointer (sret) ABI.
-/// On x86/MSVC, a return type with a non-trivial dtor/copy-ctor (e.g. the OP2 `ScStub` handles — `Trigger`,
+/// On x86/MSVC, a return type with a non-trivial dtor/copy-ctor (e.g. the OP2 `ScStub` handles - `Trigger`,
 /// `ScGroup`, … which all have `~ScStub()`) is NOT returned in EAX; instead the caller allocates the result
 /// and passes a pointer to it as the IMPLICIT FIRST argument (ECX under __fastcall), and the callee returns
 /// that pointer. We replicate that by hand: the engine writes the result into `out` (whose size must equal the
-/// engine's return type — for ScStub handles that's a single 4-byte index). The returned pointer is ignored.
+/// engine's return type - for ScStub handles that's a single 4-byte index). The returned pointer is ignored.
 template <std::uintptr_t Address, class Out, class... A>
 void callFastSret(Out* out, A... args) {
   reinterpret_cast<void* (__fastcall*)(void*, A...)>(reloc(Address))(out, args...);

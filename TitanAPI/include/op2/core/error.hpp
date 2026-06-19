@@ -1,7 +1,7 @@
 #pragma once
-// op2/core/error.hpp — the Result / error vocabulary for the TitanAPI facade (Layer 2).
+// op2/core/error.hpp - the Result / error vocabulary for the TitanAPI facade (Layer 2).
 //
-// Operations that can fail return Result<T> = std::expected<T, Error> — error-as-value, never exceptions.
+// Operations that can fail return Result<T> = std::expected<T, Error> - error-as-value, never exceptions.
 // (Outpost 2 is compiled exception-disabled, so the facade must not throw across the DLL boundary.)
 
 #include <expected>

@@ -1,9 +1,9 @@
 #pragma once
-// map_object.hpp — read a unit's live MapObject by id (Layer 1 / op2::abi). The keystone for Module 2
+// map_object.hpp - read a unit's live MapObject by id (Layer 1 / op2::abi). The keystone for Module 2
 // (unit state) and for orders/build that need to inspect a unit.
 //
 // Units live in a fixed array: the MapImpl OBJECT lives at 0x54F7F8 (it's a fixed singleton, not a pointer
-// stored there — like Research @0x56C230). MapImpl holds pMapObjArray_ (@+80), an array of 120-byte
+// stored there - like Research @0x56C230). MapImpl holds pMapObjArray_ (@+80), an array of 120-byte
 // (MapObjectSize) records indexed by unit id, and pMapObjListEnd_ (@+88) marks the end.
 //   MapObject::GetInstance(id) == &pMapObjArray_[id]
 // ALL offsets/sizes here are offsetof-verified against TethysAPI's real headers via a compiled probe
@@ -18,23 +18,23 @@ inline constexpr int kMapObjectSize = 120;   ///< AnyMapObj array stride (== Map
 
 /// MapObject field byte-offsets (offsetof-verified).
 namespace mo {
-  inline constexpr int pNext  = 4;    ///< MapObject* — a dead object's pNext_ is ~0
+  inline constexpr int pNext  = 4;    ///< MapObject* - a dead object's pNext_ is ~0
   inline constexpr int index  = 16;   ///< int
   inline constexpr int pixelX = 20;   ///< int (map pixel; tile = pixel/32)
   inline constexpr int pixelY = 24;   ///< int
   inline constexpr int owner  = 29;   ///< creatorAndOwnerNum_; owner = low nibble (& 0x0F)
   inline constexpr int damage = 30;   ///< int16 (hitpoints = maxHP - damage)
-  inline constexpr int isBusy = 32;   ///< uint8  — derived layout: damage_(int16)@30 -> isBusy_@32
-  inline constexpr int command = 33;  ///< uint8 CommandType — the unit's current command (command_@33, between isBusy & action)
-  inline constexpr int action = 34;   ///< uint8 ActionType — what the unit is currently doing (action_@34)
+  inline constexpr int isBusy = 32;   ///< uint8  - derived layout: damage_(int16)@30 -> isBusy_@32
+  inline constexpr int command = 33;  ///< uint8 CommandType - the unit's current command (command_@33, between isBusy & action)
+  inline constexpr int action = 34;   ///< uint8 ActionType - what the unit is currently doing (action_@34)
   inline constexpr int cargo  = 36;   ///< uint16 (ConVec kit / weapon / truck cargo, by type)
-  inline constexpr int actionTimer = 60; ///< int — ticks left to finish the current action (probe-verified @60)
+  inline constexpr int actionTimer = 60; ///< int - ticks left to finish the current action (probe-verified @60)
   inline constexpr int flags  = 68;   ///< uint32 (MapObjectFlags)
 }
 
-// MapEntity (disaster) flag bits — distinct meanings from the unit flags above (see MoFlagEntity). These two
+// MapEntity (disaster) flag bits - distinct meanings from the unit flags above (see MoFlagEntity). These two
 // "warning completed" bits + actionTimer_=6 are what MapObject::StartDisaster sets to skip the warning delay and
-// strike immediately (the engine has no exported StartDisaster — it's inline, so we replicate it).
+// strike immediately (the engine has no exported StartDisaster - it's inline, so we replicate it).
 inline constexpr u32 kMoFlagEntDisasterDidFirstWarn  = 1u << 14;
 inline constexpr u32 kMoFlagEntDisasterDidSecondWarn = 1u << 15;
 /// Make a freshly-created disaster strike NOW instead of after its warning period. `p` is the Disaster MapObject
@@ -129,7 +129,7 @@ inline void buildingSize(int mapId, int& width, int& height) {
   height = t ? *reinterpret_cast<u16*>(t + 586) : 0;                 // stats_.building.height @ +586
 }
 
-/// Max hitpoints of the live unit at `p`: MapObjectType::playerStats_[creator].hp — the per-creator (upgraded)
+/// Max hitpoints of the live unit at `p`: MapObjectType::playerStats_[creator].hp - the per-creator (upgraded)
 /// stats. Offsets probe-verified: playerStats_ @+8, sizeof(PerPlayerUnitStats)==68, hp @+0 (stats_@584 matched).
 inline int moMaxHp(char* p) {
   if (!p) return 0;
@@ -151,7 +151,7 @@ inline char* playerImpl(int idx) {
   return (base && idx >= 0 && idx < 7) ? base + std::size_t(idx) * kPlayerImplStride : nullptr;
 }
 
-/// Unit id of the head (newest) beacon in Gaia's (player 6) list — the just-created beacon after CreateMine.
+/// Unit id of the head (newest) beacon in Gaia's (player 6) list - the just-created beacon after CreateMine.
 inline int newestBeaconId() {
   char* gaia = playerImpl(6);
   char* beacon = gaia ? *reinterpret_cast<char**>(gaia + kPlayerVehicleList) : nullptr;
@@ -176,7 +176,7 @@ inline int findBuilding(int playerIdx, int mapType, int engTileX, int engTileY, 
   return -1;
 }
 
-/// Count buildings in a player's PlayerImpl building list — the per-player list the engine's count triggers
+/// Count buildings in a player's PlayerImpl building list - the per-player list the engine's count triggers
 /// read (distinct from a global MapObject scan). Returns -1 if the player is invalid.
 inline int countPlayerBuildings(int playerIdx) {
   char* impl = playerImpl(playerIdx);

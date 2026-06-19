@@ -1,5 +1,5 @@
 #pragma once
-// op2/trigger.hpp — Module 4: the mission event/trigger system, with a C++ callback registry.
+// op2/trigger.hpp - Module 4: the mission event/trigger system, with a C++ callback registry.
 //
 // THE PROBLEM: OP2 fires a trigger by looking up an EXPORTED FUNCTION NAME in the mission DLL
 // (GetProcAddress) and calling it (void __cdecl, no args). Classic missions write `void MyFn() {...}` and
@@ -9,7 +9,7 @@
 //   * Creating a trigger RESERVES a slot, stores your callback, and hands the engine that slot's stub name.
 //   * When the engine fires the trigger it calls TitanTrigger<k>(), which invokes the stored callback.
 //
-// So the engine ends up calling back into your C++ — the half of mission scripting the order API can't do.
+// So the engine ends up calling back into your C++ - the half of mission scripting the order API can't do.
 //
 // NOTE: this header DEFINES exported symbols, so include it in exactly one translation unit (the mission's
 // main .cpp). The stubs are `inline` so multiple inclusion is harmless, but keep it to one TU to be safe.
@@ -24,7 +24,7 @@ namespace op2 {
 class Trigger {
 public:
   /// The engine's invalid-stub sentinel (ScStubList::NilIndex == MaxNumScStubs). Valid indices are 0..254,
-  /// so index 0 is a legitimate trigger — `valid()` must not treat it as null.
+  /// so index 0 is a legitimate trigger - `valid()` must not treat it as null.
   static constexpr int kNilIndex = 255;
 
   constexpr Trigger() = default;                                 // id_ == kNilIndex -> invalid
@@ -51,7 +51,7 @@ inline constexpr int kMaxCallbacks = 16;          ///< size of the dispatcher-st
 inline std::function<void()> g_callbacks[kMaxCallbacks];
 inline int g_count = 0;
 
-/// Stub names — must match the exported TitanTrigger<n> functions defined just after this namespace.
+/// Stub names - must match the exported TitanTrigger<n> functions defined just after this namespace.
 inline const char* const g_names[kMaxCallbacks] = {
   "TitanTrigger0",  "TitanTrigger1",  "TitanTrigger2",  "TitanTrigger3",
   "TitanTrigger4",  "TitanTrigger5",  "TitanTrigger6",  "TitanTrigger7",
@@ -73,8 +73,8 @@ inline const char* reserve(std::function<void()> cb) {
 }
 
 /// Resolve a callback to a dispatcher-stub name for the engine. An EMPTY callback -> NULLPTR, the engine's
-/// "no function" sentinel (a bare CONDITION trigger, e.g. for victoryWhen/defeatWhen) — OP2 v1.4.1+. NOTE: it
-/// must be nullptr, NOT "" — the engine treats "" as a function literally named "" and faults in its reference
+/// "no function" sentinel (a bare CONDITION trigger, e.g. for victoryWhen/defeatWhen) - OP2 v1.4.1+. NOTE: it
+/// must be nullptr, NOT "" - the engine treats "" as a function literally named "" and faults in its reference
 /// resolver ("Couldn't resolve data reference") when it later evaluates the trigger. Otherwise reserve a slot;
 /// if the pool is exhausted, also fall back to nullptr (no callback) rather than hand the engine a bad name.
 inline const char* fnName(std::function<void()> cb) {
@@ -102,11 +102,11 @@ namespace op2 {
 // Each reserves a callback slot and creates the matching engine trigger, handing it the slot's stub name.
 
 /// Engine time is measured in TICKS; the in-game clock shows MARKS. 1 mark = 100 ticks. (No seconds/minutes
-/// anywhere in the API — author timed events in marks, or ticks for fine control.)
+/// anywhere in the API - author timed events in marks, or ticks for fine control.)
 inline constexpr int kTicksPerMark = 100;
 
 /// Run `cb` after `tick` engine ticks. NOTE: the engine's time is a RELATIVE INTERVAL measured from when the
-/// trigger is created, NOT an absolute game clock — onTick(100) means "100 ticks from now". When created in
+/// trigger is created, NOT an absolute game clock - onTick(100) means "100 ticks from now". When created in
 /// InitProc (game time ~0) the interval doubles as an absolute tick, which is why onMark works there; but a
 /// trigger created mid-game fires `tick` ticks LATER, so use a small interval (e.g. op2::win uses 1). oneShot
 /// fires once then disables. Wraps CreateTimeTrigger @0x478D00.
@@ -158,8 +158,8 @@ inline Trigger onVehicleCount(int player, Compare cmp, int count,
 }
 
 /// Fires when `player`'s count of `unitType` carrying `cargoOrWeapon` `cmp` `count`. (CreateCountTrigger
-/// @0x479110.) Pass `MapID::Any` (-1) for "any weapon/cargo, or none" — this is the wildcard real missions
-/// use (OP2Helper). @warning `MapID::None` (0) matches *nothing* and reads 0 — not what you want for "any".
+/// @0x479110.) Pass `MapID::Any` (-1) for "any weapon/cargo, or none" - this is the wildcard real missions
+/// use (OP2Helper). @warning `MapID::None` (0) matches *nothing* and reads 0 - not what you want for "any".
 /// Also counts structure types (e.g. CommandCenter) by existence, so it's the way to do "destroy the CC".
 inline Trigger onUnitCount(int player, abi::MapID unitType, abi::MapID cargoOrWeapon, Compare cmp, int count,
                            std::function<void()> cb = {}, bool oneShot = false) {
@@ -194,7 +194,7 @@ inline Trigger onResource(Resource res, Compare cmp, int amount, std::function<v
 /// One Standing" idiom. (CreateOperationalTrigger @0x479880.) @warning Do not pass kAllPlayers.
 /// @warning GLOBAL SIDE EFFECT: creating an operational trigger can flip the game into Last-One-Standing
 /// victory mode, in which any player with no operational CC is eliminated. Only use it when you actually want
-/// that mode. @note counts *operational* structures — an unpowered/disabled one is not counted (unlike
+/// that mode. @note counts *operational* structures - an unpowered/disabled one is not counted (unlike
 /// onUnitCount, which counts existence). Pick onBuildingCount/onUnitCount if you just mean "exists/destroyed".
 inline Trigger onOperational(int player, abi::MapID structureType, Compare cmp, int count,
                              std::function<void()> cb = {}, bool oneShot = false) {
@@ -208,7 +208,7 @@ inline Trigger onOperational(int player, abi::MapID structureType, Compare cmp, 
 // ---- victory / defeat (each WRAPS a condition trigger) --------------------------------------------------------
 
 /// Declare a victory condition: when `condition` fires, the player(s) win; `objective` is shown in the
-/// objectives list. (CreateVictoryCondition @0x479930 — also an sret return, with the condition passed by ref.)
+/// objectives list. (CreateVictoryCondition @0x479930 - also an sret return, with the condition passed by ref.)
 inline Trigger victoryWhen(Trigger condition, const char* objective, bool oneShot = false) {
   int condId = condition.id();   // engine takes the condition as `const Trigger&` -> pass &id_
   int id     = Trigger::kNilIndex;
@@ -231,13 +231,13 @@ inline Trigger defeatWhen(Trigger condition) {
 // exactly as OP2Lua's proven mission.win() does:
 //     CreateVictoryCondition(CreateTimeTrigger(1, "OP2LuaTrigger", true, true), "...", true, true);
 // (An earlier version passed nowTick()+4 here, mistaking the interval for an absolute tick. Mid-game that
-// scheduled the victory ~thousands of ticks into the FUTURE, so it never fired before the player quit — the
+// scheduled the victory ~thousands of ticks into the FUTURE, so it never fired before the player quit - the
 // real bug behind "op2::win() logged but no victory". Verified against the v0.5.24 log: CC killed at tick 4803,
 // trigger would not have fired until ~9610.) Call these once your own logic decides the outcome.
 
 /// Win the mission, showing `objective` as the completed goal. Mirrors OP2Lua mission.win(): a one-shot time
 /// trigger (interval 1, real no-op callback) wrapped in a one-shot victory condition. Being a sole victory it
-/// ends the mission on the next tick; if other victory conditions exist, OP2 ANDs them — all must be met.
+/// ends the mission on the next tick; if other victory conditions exist, OP2 ANDs them - all must be met.
 inline Trigger win(const char* objective = "Mission accomplished") {
   return victoryWhen(onTick(1, [] {}), objective, /*oneShot=*/true);
 }
@@ -246,16 +246,16 @@ inline Trigger lose() {
   return defeatWhen(onTick(1, [] {}));
 }
 
-// ---- campaign victory/defeat one-liners (Module 8 — OP2Helper-style conveniences) ----
+// ---- campaign victory/defeat one-liners (Module 8 - OP2Helper-style conveniences) ----
 
-/// Lose the moment `player` loses their last OPERATIONAL Command Center — the classic "defend your CC" failure.
+/// Lose the moment `player` loses their last OPERATIONAL Command Center - the classic "defend your CC" failure.
 /// Proven for the human player. (onOperational + defeatWhen.)
 inline Trigger loseIfNoCommandCenter(int player) {
   return defeatWhen(onOperational(player, abi::MapID::CommandCenter, Compare::Equal, 0));
 }
 
 /// Win, showing `objective`, when `enemyPlayer` is reduced to zero standing structures. NOTE: onBuildingCount
-/// reads an UNPOWERED enemy base as 0 and would fire immediately — so use this only against a powered enemy
+/// reads an UNPOWERED enemy base as 0 and would fire immediately - so use this only against a powered enemy
 /// colony; otherwise drive the win from your own enumeration + op2::win() (see the count-trigger notes).
 inline Trigger winWhenColonyDestroyed(int enemyPlayer, const char* objective = "Destroy the enemy colony") {
   return victoryWhen(onBuildingCount(enemyPlayer, Compare::Lower, 1), objective);

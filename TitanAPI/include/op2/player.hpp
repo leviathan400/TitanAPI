@@ -1,5 +1,5 @@
 #pragma once
-// op2/player.hpp — Player: a value handle for a player slot, wrapping the engine's PlayerImpl.
+// op2/player.hpp - Player: a value handle for a player slot, wrapping the engine's PlayerImpl.
 //
 // Setup writes live PlayerImpl state directly and calls a couple of engine members. The PlayerImpl array base
 // is read from a hardcoded immediate in OP2 code at 0x4890C3 (each PlayerImpl is 3108 bytes; player[n] =
@@ -41,7 +41,7 @@ public:
   Result<void> setKids(int n);                              ///< set the children pool
   Result<void> setTechLevel(int techLevel);                 ///< grants all techs up to techLevel
 
-  // ---- runtime reads (parity with OP2Lua player.*) — live PlayerImpl fields ----
+  // ---- runtime reads (parity with OP2Lua player.*) - live PlayerImpl fields ----
   [[nodiscard]] int  food()       const { return readi(OFF_foodStored);   }  ///< stored food
   [[nodiscard]] int  commonOre()  const { return readi(OFF_commonOre);    }  ///< stored common metals
   [[nodiscard]] int  rareOre()    const { return readi(OFF_rareOre);      }  ///< stored rare metals
@@ -54,7 +54,7 @@ public:
   [[nodiscard]] bool isHuman()    const { return readi(OFF_isHuman) != 0; }  ///< human-controlled
   [[nodiscard]] bool isAI()       const { return valid() && readi(OFF_isHuman) == 0; }  ///< computer-controlled
 
-  /// The difficulty level chosen in the Colony Games menu (a per-player setting). Lets a mission tune itself —
+  /// The difficulty level chosen in the Colony Games menu (a per-player setting). Lets a mission tune itself -
   /// e.g. AI resources or disaster timing. PlayerImpl::difficulty_ @+12 (probe-verified). Mirrors OP2Lua
   /// player.difficulty.
   enum class Difficulty : int { Easy = 0, Normal = 1, Hard = 2 };
@@ -89,7 +89,7 @@ public:
                             abi::member<0x477490, void>(p, loc); }
   }
 
-  /// Submit a command packet AS this player — the single local order-dispatch path
+  /// Submit a command packet AS this player - the single local order-dispatch path
   /// (PlayerImpl::ProcessCommandPacket @0x40E300). The order layer (Unit::move/attack/...) routes through
   /// here; nothing else can reach the raw per-unit Cmd* thunks. Returns EngineRejected if the engine refuses.
   Result<void> issue(const abi::raw::CommandPacket& packet) const {

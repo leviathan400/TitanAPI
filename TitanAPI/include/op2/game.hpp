@@ -1,5 +1,5 @@
 #pragma once
-// op2/game.hpp — Game: the static facade for global operations (create units, get players, ...).
+// op2/game.hpp - Game: the static facade for global operations (create units, get players, ...).
 
 #include "op2/core/error.hpp"
 #include "op2/core/location.hpp"
@@ -16,14 +16,14 @@ namespace op2 {
 using MapID        = abi::MapID;          ///< engine unit / building / weapon ids (op2::MapID::CommandCenter, ...)
 using MoraleLevels = abi::MoraleLevels;   ///< Excellent / Good / Fair / Poor / Terrible
 
-/// Engine map location — `{int x, int y}`, passed BY VALUE to engine functions that take a `Location`. It is
+/// Engine map location - `{int x, int y}`, passed BY VALUE to engine functions that take a `Location`. It is
 /// 8 bytes, so under __fastcall it is passed on the stack (the compiler matches the engine's ABI). Build it
 /// from a visible Location's engine coordinates: `EngineLoc{ loc.engineX(), loc.engineY() }`.
 struct EngineLoc { int x, y; };
 
 // =====================================================================================================================
-// Module 3 — enumeration. UnitRange is a std::ranges input view over every LIVE unit (it scans the engine's
-// MapObject array and skips dead slots), yielding op2::Unit by value with its owner resolved — so the units
+// Module 3 - enumeration. UnitRange is a std::ranges input view over every LIVE unit (it scans the engine's
+// MapObject array and skips dead slots), yielding op2::Unit by value with its owner resolved - so the units
 // are immediately orderable/readable. Compose with std::views, e.g.  Game::units() | std::views::filter(...).
 // =====================================================================================================================
 class UnitRange : public std::ranges::view_interface<UnitRange> {
@@ -59,10 +59,10 @@ struct Game {
 
   /// Current game tick (the smallest slice of game time). GameImpl singleton @0x56EA98, tick_ @+132.
   static int tick() { return *reinterpret_cast<int*>(reinterpret_cast<char*>(abi::reloc(0x56EA98)) + 132); }
-  /// Current mark (tick / 100) — the time unit shown in the in-game message log ("Current Mark").
+  /// Current mark (tick / 100) - the time unit shown in the in-game message log ("Current Mark").
   static int mark() { return tick() / 100; }
 
-  // --- enumeration (Module 3) — all return ranges, composable with std::views ---
+  // --- enumeration (Module 3) - all return ranges, composable with std::views ---
   /// Every live unit in the game (any player).
   static UnitRange units() { return {}; }
   /// Live units owned by `playerNum`.
@@ -81,16 +81,16 @@ struct Game {
     });
   }
 
-  /// True for unit types that REQUIRE a weapon — the combat-vehicle chassis (Lynx/Panther/Tiger) and the Guard
+  /// True for unit types that REQUIRE a weapon - the combat-vehicle chassis (Lynx/Panther/Tiger) and the Guard
   /// Post. OP2 CRASHES if one of these is created weaponless, so createUnit auto-arms them (see below).
   static constexpr bool isWeaponPlatform(MapID type) {
     return type == MapID::Lynx || type == MapID::Panther || type == MapID::Tiger || type == MapID::GuardPost;
   }
 
   /// Creates a unit/building for `owner` at a visible tile. Returns the new Unit (or an Error).
-  /// Wraps Game::CreateUnit @0x478780 (__fastcall) — verified in-game.
+  /// Wraps Game::CreateUnit @0x478780 (__fastcall) - verified in-game.
   /// @note If `type` is a weapon platform (combat vehicle / Guard Post) and no `weaponCargo` is given, it is
-  ///       auto-armed with a Laser — a weaponless combat vehicle crashes OP2, so this is never the author's fault.
+  ///       auto-armed with a Laser - a weaponless combat vehicle crashes OP2, so this is never the author's fault.
   static Result<Unit> createUnit(MapID type, Location at, Player owner,
                                  MapID weaponCargo = MapID::None, int rotation = 0) {
     if (!owner.valid()) return fail(err::InvalidPlayer);
@@ -148,14 +148,14 @@ struct Game {
     char* log = reinterpret_cast<char*>(abi::reloc(0x54FCF0));      // MessageLog singleton object
     abi::member<0x439070, int>(log, 0, -1, text, soundID);         // AddMessage(pixelX=0, pixelY=-1, msg, soundID)
   }
-  /// Post a Communications-log message tied to a map LOCATION — clicking it jumps the view to `at`. (OP2Helper's
+  /// Post a Communications-log message tied to a map LOCATION - clicking it jumps the view to `at`. (OP2Helper's
   /// AddMapMessage.) Same MessageLog::AddMessage @0x439070, but with the tile's centered pixel coords.
   static void addMessage(Location at, const char* text, int soundID = 0) {
     char* log = reinterpret_cast<char*>(abi::reloc(0x54FCF0));
     abi::member<0x439070, int>(log, at.enginePixelX(), at.enginePixelY(), text, soundID);
   }
 
-  /// Issue a ctGameOpt packet locally (engine poke — morale, daylight, …), built as a GameOptCommand and
+  /// Issue a ctGameOpt packet locally (engine poke - morale, daylight, …), built as a GameOptCommand and
   /// dispatched via the local player. Set at tick 0 (InitProc) to avoid the "cheated game!" alert.
   static Result<void> setGameOpt(abi::GameOpt opt, abi::u16 param1 = 0, abi::u16 param2 = 0) {
     abi::CmdBuilder b{ abi::CommandType::GameOpt };
@@ -165,7 +165,7 @@ struct Game {
 
   // --- morale (OP2MissionSDK / OP2Lua-style named controls) -------------------------------------------------
   // `forceMorale*` LOCKS morale at a level so it stops fluctuating (i.e. holds it steady); `freeMoraleLevel`
-  // lets it vary again. playerNum -1 = all players. Call at tick 0 (InitProc) — forcing morale after the game
+  // lets it vary again. playerNum -1 = all players. Call at tick 0 (InitProc) - forcing morale after the game
   // has started raises the engine's "cheated game!" alert.
   static Result<void> forceMoraleGreat (int playerNum = -1) { return setGameOpt(abi::GameOpt::ForceMoraleExcellent, abi::u16(playerNum)); }
   static Result<void> forceMoraleGood  (int playerNum = -1) { return setGameOpt(abi::GameOpt::ForceMoraleGood,      abi::u16(playerNum)); }
@@ -232,11 +232,11 @@ struct Game {
     return {};
   }
 
-  /// Place a wall tile — `type` is MapID::Wall / LavaWall / MicrobeWall / Tube. (CreateWall @0x478AA0.)
+  /// Place a wall tile - `type` is MapID::Wall / LavaWall / MicrobeWall / Tube. (CreateWall @0x478AA0.)
   static void createWall(MapID type, Location at) {
     abi::callFast<0x478AA0, int>(at.engineX(), at.engineY(), 0, int(type));
   }
-  /// Lay a straight (or L-shaped) line of walls of `type` between two visible tiles, inclusive — the wall
+  /// Lay a straight (or L-shaped) line of walls of `type` between two visible tiles, inclusive - the wall
   /// counterpart of createTubeLine (horizontal leg along from.y, then vertical leg along to.x for a diagonal).
   static void createWallLine(MapID type, Location from, Location to) {
     const auto lo = [](int a, int b) { return a < b ? a : b; };
@@ -251,7 +251,7 @@ struct Game {
     }
   }
 
-  /// Spread Blight (microbe) onto the map at `where` — always immediate. (CreateBlight @0x476EA0, enable=1.)
+  /// Spread Blight (microbe) onto the map at `where` - always immediate. (CreateBlight @0x476EA0, enable=1.)
   static void createBlight(Location where) {
     abi::callFast<0x476EA0, void, EngineLoc, int>(EngineLoc{ where.engineX(), where.engineY() }, 1);
   }
@@ -260,14 +260,14 @@ struct Game {
   static void unsetBlight(Location where) {
     abi::callFast<0x476EA0, void, EngineLoc, int>(EngineLoc{ where.engineX(), where.engineY() }, 0);
   }
-  /// Set how fast LAVA spreads (OP2's named scale: VerySlow 15, Slow 45, Medium 75, Fast 105, VeryFast 135 —
+  /// Set how fast LAVA spreads (OP2's named scale: VerySlow 15, Slow 45, Medium 75, Fast 105, VeryFast 135 -
   /// higher = faster). LavaManager is a fixed singleton object AT 0x54EFE0 (same object-at-address pattern as
-  /// Random/SoundManager — OP2Mem<addr,T*> casts to the address, it does NOT deref a stored pointer); its
+  /// Random/SoundManager - OP2Mem<addr,T*> casts to the address, it does NOT deref a stored pointer); its
   /// SetLavaSpeed is @0x432F00. Mirrors OP2Lua game.set_lava_speed. (Proven working via the cold-front sample.)
   static void setLavaSpeed(int speed) {
     abi::member<0x432F00, void>(reinterpret_cast<void*>(abi::reloc(0x54EFE0)), speed);
   }
-  /// Set how fast BLIGHT (microbe) spreads — same named scale as lava. BlightManager is a fixed singleton object
+  /// Set how fast BLIGHT (microbe) spreads - same named scale as lava. BlightManager is a fixed singleton object
   /// AT 0x57B7D8; its SetSpreadSpeed is @0x49E310. Mirrors OP2Lua game.set_blight_speed.
   static void setBlightSpeed(int speed) {
     abi::member<0x49E310, void>(reinterpret_cast<void*>(abi::reloc(0x57B7D8)), speed);
@@ -276,7 +276,7 @@ struct Game {
   /// Marker decal graphic for createMarker(). Mirrors Tethys MarkerType.
   enum class Marker : int { Circle = 0, DNA = 1, Beaker = 2 };
   /// Place a visual marker decal on the map at `where` and return its Unit handle (use .remove() to clear it).
-  /// CreateMarker @0x478BB0 — FASTCALL(Unit& out, int x, int y, int type); fills `out` like CreateUnit's sret.
+  /// CreateMarker @0x478BB0 - FASTCALL(Unit& out, int x, int y, int type); fills `out` like CreateUnit's sret.
   /// Mirrors OP2Lua game.create_marker.
   static Unit createMarker(Location where, Marker type = Marker::Circle) {
     int id = 0;
@@ -321,7 +321,7 @@ struct Game {
   }
 
   /// All mining beacons on the map, optionally filtered by ore type (-1 = any, 0 = Common, 1 = Rare). Mirrors
-  /// OP2Lua's `game.beacons` — the "perception" query a surveyor AI uses to find ore deposits. Built on the
+  /// OP2Lua's `game.beacons` - the "perception" query a surveyor AI uses to find ore deposits. Built on the
   /// Module 3 enumeration (scans the live unit array for MiningBeacons), so it naturally skips wreckage /
   /// fumaroles / magma vents.
   static std::vector<Unit> beacons(int oreType = -1) {
@@ -365,17 +365,17 @@ struct Game {
     abi::member<0x47EDB0, void>(mgr, at.enginePixelX(), at.enginePixelY(), soundID);
   }
 
-  /// Light the entire map (no night anywhere). (GameOpt::DaylightEverywhere — set during InitProc.)
+  /// Light the entire map (no night anywhere). (GameOpt::DaylightEverywhere - set during InitProc.)
   static Result<void> setDaylightEverywhere(bool on) {
     return setGameOpt(abi::GameOpt::DaylightEverywhere, abi::u16(on ? 1 : 0));
   }
-  /// Make the day/night terminator sweep across the map. (GameOpt::DaylightMoves — set during InitProc.)
+  /// Make the day/night terminator sweep across the map. (GameOpt::DaylightMoves - set during InitProc.)
   static Result<void> setDaylightMoves(bool on) {
     return setGameOpt(abi::GameOpt::DaylightMoves, abi::u16(on ? 1 : 0));
   }
 };
 
-// Player::units — defined here (not in player.hpp) because it returns Units and iterates Game::unitsOf, both of
+// Player::units - defined here (not in player.hpp) because it returns Units and iterates Game::unitsOf, both of
 // which are only complete at this point (player.hpp can't include unit.hpp/game.hpp without a cycle).
 inline std::vector<Unit> Player::units(abi::MapID type) const {
   std::vector<Unit> out;
@@ -386,12 +386,12 @@ inline std::vector<Unit> Player::units(abi::MapID type) const {
 }
 
 // =====================================================================================================================
-// Module 6 — GameMap: terrain tile access (wraps the engine's GameMap over the MapImpl singleton). Coordinates
+// Module 6 - GameMap: terrain tile access (wraps the engine's GameMap over the MapImpl singleton). Coordinates
 // are VISIBLE tiles. Tile-property READS (cellType / lava / microbe) need the engine's padded tile-array index
 // math and are deferred to a later pass; the direct-thunk graphics/light/lava-flag setters are here now.
 // =====================================================================================================================
 
-/// Terrain cell types — the passability class the engine assigns each tile (subset of the engine's CellType).
+/// Terrain cell types - the passability class the engine assigns each tile (subset of the engine's CellType).
 enum class CellType : int {
   FastPassible1 = 0,   ///< rock vegetation
   Impassible2,         ///< meteor craters, cracks/crevasses
@@ -408,7 +408,7 @@ enum class CellType : int {
 };
 
 struct GameMap {
-  /// Graphics (mapping) tile index at `where`. (GameMap::GetTile @0x476D00 — takes a Location by value.)
+  /// Graphics (mapping) tile index at `where`. (GameMap::GetTile @0x476D00 - takes a Location by value.)
   static int getTile(Location where) {
     return abi::callFast<0x476D00, int, EngineLoc>(EngineLoc{ where.engineX(), where.engineY() });
   }
@@ -428,7 +428,7 @@ struct GameMap {
     abi::callFast<0x476F90, void, int>(lightPosition);
   }
 
-  // --- tile-property reads (MapImpl::Tile) — offsets pinned by offsetof-probe; pMapObjArray_=80 validated ---
+  // --- tile-property reads (MapImpl::Tile) - offsets pinned by offsetof-probe; pMapObjArray_=80 validated ---
 
   /// Map height in tiles. (MapImpl::tileHeight_ @+24.)
   static int getHeight() { return mapInt(24); }
@@ -436,18 +436,18 @@ struct GameMap {
   /// (MapImpl::tileWidth_ @+16 / paddingOffsetTileX_ @+56.)
   static int getWidth() { return mapInt(16) / ((mapInt(56) != 0) ? 2 : 1); }
 
-  /// Terrain passability class at `where`. (TileData.cellType — bits 0-4.)
+  /// Terrain passability class at `where`. (TileData.cellType - bits 0-4.)
   static CellType getCellType(Location where)     { return CellType(tileData(where) & 0x1Fu); }
-  /// Is lava currently on `where`? (TileData.lava — bit 27.)
+  /// Is lava currently on `where`? (TileData.lava - bit 27.)
   static bool getLavaPresent(Location where)      { return (tileData(where) >> 27) & 1u; }
-  /// Can lava flow onto `where`? (TileData.lavaPossible — bit 28.)
+  /// Can lava flow onto `where`? (TileData.lavaPossible - bit 28.)
   static bool getLavaPossible(Location where)     { return (tileData(where) >> 28) & 1u; }
-  /// Is microbe (Blight) on `where`? (TileData.microbe — bit 30.)
+  /// Is microbe (Blight) on `where`? (TileData.microbe - bit 30.)
   static bool getMicrobe(Location where)          { return (tileData(where) >> 30) & 1u; }
-  /// Is a wall or building on `where`? (TileData.wallOrBuilding — bit 31.)
+  /// Is a wall or building on `where`? (TileData.wallOrBuilding - bit 31.)
   static bool getWallOrBuilding(Location where)   { return (tileData(where) >> 31) & 1u; }
 
-  /// Is this single tile buildable — on-map, passable terrain, not already occupied by a wall/building, and no
+  /// Is this single tile buildable - on-map, passable terrain, not already occupied by a wall/building, and no
   /// lava? (OP2Lua's `game.can_place`.) Reads tile flags directly; deliberately NOT the engine's
   /// CanPlaceStructure thunk, which dereferences script-invalid global state and crashes even for a valid tile
   /// (OP2Lua's hard-won note). Check every tile of a footprint to validate a whole site.
@@ -457,10 +457,10 @@ struct GameMap {
   }
 
   /// Ring outward from `from` (up to `maxRadius` tiles) for the nearest spot where a structure of `type`'s WHOLE
-  /// footprint — including its 1-tile build-clearance border — is buildable, and return the DoBuild anchor (the
+  /// footprint - including its 1-tile build-clearance border - is buildable, and return the DoBuild anchor (the
   /// building's bottom-right tile, visible coords) ready to hand to `Unit::build()`. Error if none found.
   /// Mirrors OP2Lua's `game.find_build_site`. MapObjectType::GetTileRect is pure arithmetic (size ± a 2-tile
-  /// border, centered on the tile), so we compute the rects here from the type's footprint — no engine call.
+  /// border, centered on the tile), so we compute the rects here from the type's footprint - no engine call.
   static Result<Location> findBuildSite(MapID type, Location from, int maxRadius = 30) {
     int w = 0, h = 0;
     abi::buildingSize(int(type), w, h);
@@ -479,7 +479,7 @@ struct GameMap {
               if (!canPlace(Location{ tx, ty })) { ok = false; break; }
           if (ok) {
             // The DoBuild anchor Unit::build() expects is the building's TOTAL-footprint bottom-right (the core
-            // plus the 1-tile build border) — build()'s rect spans (anchor-(w+1) .. anchor), which centers the
+            // plus the 1-tile build border) - build()'s rect spans (anchor-(w+1) .. anchor), which centers the
             // core on `center`. Returning the *core* bottom-right (one tile short) shifts the structure up-left
             // by (1,1) and can make its rect collide with a neighbour, so the build is silently rejected.
             const int cx1 = center.x - w / 2, cy1 = center.y - h / 2;        // core top-left
@@ -518,7 +518,7 @@ private:
 };
 
 /// A rectangular map region in visible tiles (OP2Lua's `Region`): query the live units inside, test
-/// containment, get the center. Build from two corners — `Region{ {x1,y1}, {x2,y2} }`.
+/// containment, get the center. Build from two corners - `Region{ {x1,y1}, {x2,y2} }`.
 struct Region {
   Location topLeft, bottomRight;
   [[nodiscard]] bool contains(Location p) const {

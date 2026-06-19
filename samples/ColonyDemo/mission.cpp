@@ -1,4 +1,4 @@
-// mission.cpp — TitanAPI demo mission, built on the Layer 2 FACADE (op2::Game / op2::Player / op2::Unit).
+// mission.cpp - TitanAPI demo mission, built on the Layer 2 FACADE (op2::Game / op2::Player / op2::Unit).
 //
 // Same colony as the Layer-1 sample, but expressed through the ergonomic facade: Result-returning setup,
 // value-handle Player/Unit, and in-game (visible) coordinates. The Layer-1-only version (raw op2::abi) is
@@ -15,7 +15,7 @@ using namespace op2::mission;
 using op2::MapID;
 
 // =====================================================================================================================
-// Mission metadata — the exact exports Outpost 2 / op2ext read to list and configure the mission.
+// Mission metadata - the exact exports Outpost 2 / op2ext read to list and configure the mission.
 // MapName / TechtreeName must exist in your install ("on6_01.map" + "MULTITEK.TXT" is the stock Colony combo).
 // =====================================================================================================================
 extern "C" __declspec(dllexport) char      LevelDesc[]    = "TitanAPI Colony Demo";
@@ -51,7 +51,7 @@ static op2::Unit g_orgTruck2;    // player 0 Cargo Truck for the organic mine
 static op2::Unit g_earthworker;  // player 0 Earthworker (builds a tube at mark 1)
 
 // =====================================================================================================================
-// API SELF-TEST — exercises every TitanAPI facade function in-game and logs [PASS]/[FAIL] + a summary.
+// API SELF-TEST - exercises every TitanAPI facade function in-game and logs [PASS]/[FAIL] + a summary.
 // Run once from the live game loop (AIProc). For orders, PASS = the facade built the packet and the engine
 // accepted it (orders apply asynchronously, so this is an "accepted" check, not "completed"). For state
 // reads, PASS = the value is sane. Creates its own unit roster in a test area so it is self-contained.
@@ -74,7 +74,7 @@ static void chkR(const op2::Result<void>& r, const char* name) {
 }
 
 /// Record an EXPECTED-FAILURE check: PASS when `r` is an error of exactly `want` (verifies the error-as-value
-/// path — the class of bug this facade was built to prevent). Works for Result<void> and Result<Unit>.
+/// path - the class of bug this facade was built to prevent). Works for Result<void> and Result<Unit>.
 template <class T>
 static void chkErr(const op2::Result<T>& r, op2::Status want, const char* name) {
   const bool good = !r.has_value() && (r.error().status == want);
@@ -121,7 +121,7 @@ static void run() {
   { auto beacon = op2::Game::createMine({ 60, 100 });
     chk(bool(beacon) && beacon->valid(), "Game::createMine");
     if (beacon) { chkR(beacon->survey(0), "Unit::survey"); chk(beacon->isSurveyed(0), "Unit::isSurveyed"); } }
-  // (Game::createTube / createTubeLine are exercised by the colony tube line in InitProc — no stray tubes here.)
+  // (Game::createTube / createTubeLine are exercised by the colony tube line in InitProc - no stray tubes here.)
 
   // ---- Game::createUnit: the test roster (each creation is a check) ----
   op2::Unit lynx    = mk("createUnit(Lynx)",             op2::MapID::Lynx,             { 58, 88 }, p0, op2::MapID::Microwave);
@@ -221,7 +221,7 @@ extern "C" int __stdcall DllMain(void* /*hinst*/, unsigned long reason, void* /*
   return 1;
 }
 
-/// Set up a Plymouth human colony and place a small base — all through the TitanAPI facade.
+/// Set up a Plymouth human colony and place a small base - all through the TitanAPI facade.
 extern "C" __declspec(dllexport) int InitProc() {
   op2::log::line("InitProc: enter (Layer 2 facade)");
 
@@ -260,7 +260,7 @@ extern "C" __declspec(dllexport) int InitProc() {
     op2::log::line("  ! scout create FAILED");
   }
 
-  // A ConVec carrying an Agridome kit — AIProc will order it to build (exercises the MapObject read path:
+  // A ConVec carrying an Agridome kit - AIProc will order it to build (exercises the MapObject read path:
   // build() reads the carried kit + looks up its footprint from the type table).
   if (auto cv = op2::Game::createUnit(MapID::ConVec, { 52, 86 }, p0, MapID::Agridome)) {
     g_buildConvec = *cv;
@@ -301,7 +301,7 @@ extern "C" __declspec(dllexport) int InitProc() {
     step(g_orgBeacon.survey(0), "beacon.survey(player 0)");
     op2::log::linef("  organic beacon isSurveyed(p0)=%d (expect 1)", g_orgBeacon.isSurveyed(0) ? 1 : 0);
     recordU(op2::Game::createUnit(MapID::RoboMiner,        { 39, 91 }, p0), g_roboMiner,  "robo-miner");
-    // The organic mine's smelter + trucks — placed now; the trucks get routed once the Robo-Miner has
+    // The organic mine's smelter + trucks - placed now; the trucks get routed once the Robo-Miner has
     // actually built the mine (AIProc auto-detects it; see below).
     recordU(op2::Game::createUnit(MapID::CommonOreSmelter, { 31, 90 }, p0), g_orgSmelter, "organic smelter");
     recordU(op2::Game::createUnit(MapID::CargoTruck,       { 32, 92 }, p0), g_orgTruck1,  "organic truck1");
@@ -310,7 +310,7 @@ extern "C" __declspec(dllexport) int InitProc() {
     op2::log::line("  ! organic beacon createMine FAILED");
   }
 
-  // Earthworker — AIProc orders it to build a tube at 61,98 once the clock reaches mark 1 (tick 100).
+  // Earthworker - AIProc orders it to build a tube at 61,98 once the clock reaches mark 1 (tick 100).
   recordU(op2::Game::createUnit(MapID::Earthworker, { 61, 94 }, p0), g_earthworker, "earthworker");
 
   // ---- player 1: a computer-controlled (AI) Eden outpost ----
@@ -331,7 +331,7 @@ extern "C" __declspec(dllexport) int InitProc() {
   place1(MapID::CommandCenter, 70, 70);
   place1(MapID::CommonStorage, 73, 70);
   place1(MapID::ConVec,        72, 74);
-  // Keep one AI Lynx (Laser) so AIProc can order it too — proves orders route to player 1, not player 0.
+  // Keep one AI Lynx (Laser) so AIProc can order it too - proves orders route to player 1, not player 0.
   // It's also the target of the EMP-capture demo below.
   if (auto lynx = op2::Game::createUnit(MapID::Lynx, { 71, 74 }, p1, MapID::Laser)) {
     g_aiLynx = *lynx;
@@ -341,7 +341,7 @@ extern "C" __declspec(dllexport) int InitProc() {
   }
 
   // EMP-capture demo (classic OP2 tactic), all clustered ~(70-73, 88-91): a player-0 EMP Lynx EMPs a nearby
-  // enemy laser Lynx, then a player-0 Spider reprograms it — player 0 takes ownership. The EMP Lynx is right
+  // enemy laser Lynx, then a player-0 Spider reprograms it - player 0 takes ownership. The EMP Lynx is right
   // next to the target so it EMPs it immediately; the reprogram fires once the target reads EMP'd (AIProc).
   recordU(op2::Game::createUnit(MapID::Lynx,   { 73, 88 }, p1, MapID::Laser), g_enemyLynx,    "enemy laser lynx");
   recordU(op2::Game::createUnit(MapID::Lynx,   { 70, 91 }, p0, MapID::EMP),   g_empLynx,      "emp lynx");
@@ -356,15 +356,15 @@ extern "C" __declspec(dllexport) void AIProc() {
   static bool first = true;
   if (first) {
     first = false;
-    op2::log::line("AIProc: first call — mission update loop is running");
+    op2::log::line("AIProc: first call - mission update loop is running");
     // Module 1 order API: move one unit per player, through the command-packet path. Each dispatches to its
-    // OWN player's ProcessCommandPacket — proves the owner-carry mechanism routes correctly.
+    // OWN player's ProcessCommandPacket - proves the owner-carry mechanism routes correctly.
     const op2::Result<void> m0 = g_scout.move({ 55, 84 });   // player 0
     if (m0) op2::log::linef("  g_scout.move(55,84): ok (id=%d)", g_scout.id());
     else    op2::log::linef("  ! g_scout.move FAILED: %.*s",
                             int(m0.error().what.size()), m0.error().what.data());
 
-    const op2::Result<void> m1 = g_aiLynx.move({ 65, 74 });  // player 1 (AI) — within its relocated base
+    const op2::Result<void> m1 = g_aiLynx.move({ 65, 74 });  // player 1 (AI) - within its relocated base
     if (m1) op2::log::linef("  g_aiLynx.move(65,74): ok (id=%d)", g_aiLynx.id());
     else    op2::log::linef("  ! g_aiLynx.move FAILED: %.*s",
                             int(m1.error().what.size()), m1.error().what.data());
@@ -423,7 +423,7 @@ extern "C" __declspec(dllexport) void AIProc() {
       const bool ok2 = g_orgTruck2.mine(mine, g_orgSmelter).has_value();
       orgRouted = true;
       op2::Game::addMessage("Mine operational");   // sending an in-game message is one call
-      op2::log::linef("  organic mine built (id=%d) — routed trucks (t1=%s t2=%s)",
+      op2::log::linef("  organic mine built (id=%d) - routed trucks (t1=%s t2=%s)",
                       mineId, ok1 ? "ok" : "FAIL", ok2 ? "ok" : "FAIL");
     }
   }

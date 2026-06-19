@@ -1,5 +1,5 @@
 #pragma once
-// op2.hpp — TitanAPI Layer 2 facade umbrella. Include this to get the ergonomic API:
+// op2.hpp - TitanAPI Layer 2 facade umbrella. Include this to get the ergonomic API:
 //   op2::Result<T> / op2::Error, op2::Location, op2::Unit, op2::Player, op2::Game, op2::MapID.
 //
 // The facade is built on Layer 1 (op2::abi). For raw engine access, include op2/abi/memory.hpp directly.

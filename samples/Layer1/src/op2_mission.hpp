@@ -1,5 +1,5 @@
 #pragma once
-// op2_mission.hpp — the Outpost 2 mission-DLL contract (the Layer-1 "be a mission" ABI).
+// op2_mission.hpp - the Outpost 2 mission-DLL contract (the Layer-1 "be a mission" ABI).
 //
 // These types/layouts are facts about how Outpost 2 / the OPU loader interface with a mission DLL
 // (reference: TethysAPI API/Mission.h). A mission DLL must export, with exactly these names & layouts:

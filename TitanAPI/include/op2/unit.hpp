@@ -1,13 +1,13 @@
 #pragma once
-// op2/unit.hpp — Unit: a value handle over an engine unit, with the order API (Module 1).
+// op2/unit.hpp - Unit: a value handle over an engine unit, with the order API (Module 1).
 //
 // Orders are issued the way the engine itself does it: build a CommandPacket and hand it to the OWNING
 // player's PlayerImpl::ProcessCommandPacket (via Player::issue). The raw per-unit Cmd* thunks (CmdMove,
-// CmdDock, ...) are never touched — that direct path is what crashes OP2's pathfinder and is the bug class
+// CmdDock, ...) are never touched - that direct path is what crashes OP2's pathfinder and is the bug class
 // TethysAPI's DoMove/DoDock/DoMiningRoute fell into. See re-reference/command-packets.md + op2missionsdk-api.md.
 //
 // The handle carries its owner (known at creation) so it can pick the right PlayerImpl to dispatch through.
-// (Units obtained by enumeration later will read ownerNum_ from the MapObject — Module 2/3.)
+// (Units obtained by enumeration later will read ownerNum_ from the MapObject - Module 2/3.)
 
 #include "op2/core/error.hpp"
 #include "op2/core/location.hpp"
@@ -53,7 +53,7 @@ public:
     return p && abi::member<0x4055F0, int>(p, player) != 0;  // MiningBeacon::IsSurveyed(playerNum)
   }
   /// This beacon's ore type (0 = Common, 1 = Rare). Only meaningful on a MiningBeacon. MiningBeacon::GetOreType
-  /// @0x405520 — virtual, but a beacon is a concrete type so the direct thunk resolves. Mirrors OP2Lua Unit.ore.
+  /// @0x405520 - virtual, but a beacon is a concrete type so the direct thunk resolves. Mirrors OP2Lua Unit.ore.
   [[nodiscard]] int oreType() const {
     char* p = abi::mapObject(id_);
     return p ? abi::member<0x405520, int>(p) : 0;
@@ -64,9 +64,9 @@ public:
   [[nodiscard]] int      cargo() const { return abi::moCargo(abi::mapObject(id_)); }        ///< raw cargo/weapon word
   [[nodiscard]] int      damage() const { return abi::moDamage(abi::mapObject(id_)); }      ///< accumulated damage
   /// Weapon fitted to a combat vehicle / Guard Post (engine stores it in the same word as cargo). Meaningless
-  /// for non-combat types — use on Lynx/Panther/Tiger/GuardPost.
+  /// for non-combat types - use on Lynx/Panther/Tiger/GuardPost.
   [[nodiscard]] abi::MapID weapon() const { return abi::MapID(abi::moCargo(abi::mapObject(id_))); }
-  /// [Cargo Truck] cargo type carried (low 4 bits of the cargo word — a CargoType value).
+  /// [Cargo Truck] cargo type carried (low 4 bits of the cargo word - a CargoType value).
   [[nodiscard]] int truckCargo()       const { return abi::moCargo(abi::mapObject(id_)) & 0x0F; }
   /// [Cargo Truck] amount of cargo carried (next 12 bits).
   [[nodiscard]] int truckCargoAmount() const { return (abi::moCargo(abi::mapObject(id_)) >> 4) & 0x0FFF; }
@@ -74,7 +74,7 @@ public:
   [[nodiscard]] bool     isLightsOn() const { return hasFlag(abi::kMoFlagLights); }          ///< vehicle headlights on?
   [[nodiscard]] int      action() const { return abi::moAction(abi::mapObject(id_)); }       ///< raw ActionType (what it's doing)
   [[nodiscard]] int      command() const { return abi::moCommand(abi::mapObject(id_)); }      ///< raw CommandType (its current order)
-  /// [building] Still being built (or dismantled) — its command is Develop/UnDevelop. Wait for this to clear
+  /// [building] Still being built (or dismantled) - its command is Develop/UnDevelop. Wait for this to clear
   /// before transferring a kit / commanding it. (Mirrors OP2Lua Unit.under_construction.)
   [[nodiscard]] bool     underConstruction() const {
     const int c = command();
@@ -102,7 +102,7 @@ public:
   }
   /// Fit/replace a combat vehicle's weapon (writes the weapon word in place). Use on Lynx/Panther/Tiger/GuardPost.
   void setWeapon(abi::MapID w) { if (char* p = abi::mapObject(id_)) *reinterpret_cast<abi::u16*>(p + abi::mo::cargo) = abi::u16(int(w)); }
-  /// [ConVec] Set the structure kit it carries. (Same union field as weapon/cargo — a unit is only ever one.)
+  /// [ConVec] Set the structure kit it carries. (Same union field as weapon/cargo - a unit is only ever one.)
   void setKit(abi::MapID kit) { setWeapon(kit); }
   /// [Cargo Truck] Set its cargo type (low 4 bits) and amount (next 12 bits) in the cargo word.
   void setTruckCargo(int cargoType, int amount) {
@@ -117,7 +117,7 @@ public:
   [[nodiscard]] bool hasScientists() const { return isBuilding() && hasFlag(abi::kMoFlagBldScientists); }
   /// Building lacks power (the "1 Structure Disabled" state). Non-buildings report false.
   [[nodiscard]] bool isDisabled()    const { return isBuilding() && !hasFlag(abi::kMoFlagBldPower);     }
-  /// [structure] Is this building enabled (fully built, powered & staffed — actively operating)? Non-buildings
+  /// [structure] Is this building enabled (fully built, powered & staffed - actively operating)? Non-buildings
   /// report false. Building::IsEnabled @0x483710 (virtual; a concrete building resolves the thunk directly).
   /// Mirrors OP2Lua Unit.enabled.
   [[nodiscard]] bool enabled() const {
@@ -185,7 +185,7 @@ public:
     t.tileY = u16(ground.engineY());
     return targeted(abi::CommandType::Attack, t);
   }
-  /// OP2Lua's `attack_move`: advance aggressively toward a target, firing en route. Mapped to attack — a plain
+  /// OP2Lua's `attack_move`: advance aggressively toward a target, firing en route. Mapped to attack - a plain
   /// move (CmdMove) on a freshly-spawned unit can crash OP2's pathfinder, but attack-to-ground/unit does not, so
   /// this is the safe "go there fighting" order. (Identical to attack(); named for parity & intent.)
   Result<void> attackMove(Unit target)     { return attack(target); }
@@ -231,7 +231,7 @@ public:
     b.singleUnit(u16(id_)).field<u16>(u16(numToTrain));
     return dispatch(b);
   }
-  /// [Spaceport] Launch the rocket on the pad toward `target` (Launch command — target is a map pixel).
+  /// [Spaceport] Launch the rocket on the pad toward `target` (Launch command - target is a map pixel).
   Result<void> launch(Location target) {
     abi::CmdBuilder b{ abi::CommandType::Launch };
     b.singleUnit(u16(id_)).field<u16>(u16(target.enginePixelX())).field<u16>(u16(target.enginePixelY()));
@@ -271,7 +271,7 @@ public:
   }
 
   /// [ConVec] Build the structure kit the ConVec carries, its bottom-right corner at `bottomRight`. The
-  /// footprint is read from the building type's stats — no need to pass the size.
+  /// footprint is read from the building type's stats - no need to pass the size.
   Result<void> build(Location bottomRight) {
     char* p = abi::mapObject(id_);
     if (!p) return fail(err::NullHandle);
@@ -286,7 +286,7 @@ public:
   }
 
   /// [Earthworker] Build walls/tubes of `type` over a tile area (from..to inclusive). The engine wants the
-  /// bottom-right corner exclusive, so we add 1 — matching the proven DoBuildWall behaviour.
+  /// bottom-right corner exclusive, so we add 1 - matching the proven DoBuildWall behaviour.
   Result<void> buildWall(abi::MapID type, Location from, Location to) {
     abi::CmdBuilder b{ abi::CommandType::BuildWall };
     b.oneUnit(u16(id_))
@@ -336,7 +336,7 @@ public:
   }
 
   /// [Cargo Truck] Set up a mine <-> smelter cargo route (haul ore back and forth). Built CORRECTLY
-  /// (numUnits=1, unitID[0]=this truck) — TethysAPI's DoMiningRoute *still* sets numUnits = the unit id and
+  /// (numUnits=1, unitID[0]=this truck) - TethysAPI's DoMiningRoute *still* sets numUnits = the unit id and
   /// writes unitID[1], the historical bug this facade designs out.
   Result<void> mine(Unit mineUnit, Unit smelter) {
     if (!mineUnit.valid() || !smelter.valid()) return fail(err::InvalidTarget);
@@ -353,7 +353,7 @@ public:
     return dispatch(b);
   }
 
-  /// Dock this vehicle at a structure (e.g. a smelter or spaceport) — its docking tile.
+  /// Dock this vehicle at a structure (e.g. a smelter or spaceport) - its docking tile.
   Result<void> dock(Unit at) {
     if (!at.valid()) return fail(err::InvalidTarget);
     abi::CmdBuilder b{ abi::CommandType::Dock };

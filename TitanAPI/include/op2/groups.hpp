@@ -1,5 +1,5 @@
 #pragma once
-// op2/groups.hpp — Module 5: AI ScGroups. A Group is a roster of units the engine commands as a unit — combat
+// op2/groups.hpp - Module 5: AI ScGroups. A Group is a roster of units the engine commands as a unit - combat
 // FightGroups, mining MiningGroups, base BuildingGroups. This is how you "script an AI": assign units to a
 // group and give the GROUP strategic orders (attack the enemy, guard, patrol) instead of micro-managing each
 // unit. Groups are ScStub handles (exactly like Trigger): a single {int id_}.
@@ -23,7 +23,7 @@ namespace op2 {
 using MapID = abi::MapID;
 
 /// How the engine categorizes a unit in a UnitBlock (drives the block's class sorting + a group's per-class
-/// tracking). Attack covers armed Lynx/Panther/Tiger — the common combat-reinforcement case.
+/// tracking). Attack covers armed Lynx/Panther/Tiger - the common combat-reinforcement case.
 enum class UnitClass : int {
   Attack = 0, ESG = 1, EMP = 2, Stickyfoam = 3, Spider = 4, ConVec = 5, RepairVehicle = 6, CargoTruck = 7,
   Earthworker = 8, Colony = 9, VehicleFactory = 10, ArachnidFactory = 11, StructureFactory = 12,
@@ -54,7 +54,7 @@ inline std::deque<PatrolHolder>& patrolStore() { static std::deque<PatrolHolder>
 
 /// A batch of units = the engine `UnitBlock`. Construct from a list, then `createUnits()` them for a player, or
 /// hand it to a Group (`addUnits` / `setTargCount` / `recordUnitBlock`). The engine object sorts and stores a
-/// pointer into our record table, so a UnitBlock is **non-copyable** — keep it alive while a group uses it.
+/// pointer into our record table, so a UnitBlock is **non-copyable** - keep it alive while a group uses it.
 class UnitBlock {
 public:
   explicit UnitBlock(std::initializer_list<UnitRecord> records) {
@@ -62,7 +62,7 @@ public:
     for (const UnitRecord& r : records)
       table_.push_back({ int(r.type), r.at.engineX(), r.at.engineY(), 0, r.rotation, int(r.weapon), int(r.cls),
                          abi::u16(r.cargoType), abi::u16(r.cargoAmount) });
-    table_.push_back({ int(MapID::None), 0, 0, 0, 0, int(MapID::None), 0, 0, 0 });   // mapNone TERMINATOR — the
+    table_.push_back({ int(MapID::None), 0, 0, 0, 0, int(MapID::None), 0, 0, 0 });   // mapNone TERMINATOR - the
     // engine ctor takes only a pointer, so SortAndInit scans the table until this unitType==None record. Without
     // it, SortAndInit/CreateUnits read past the end and fault in FindUnitPlacementLocation (the v0.5.40 crash).
     abi::member<0x49D4A0, void>(block_, table_.data());          // engine ctor: SortAndInit(table_), fills classRange
@@ -74,7 +74,7 @@ public:
   int createUnits(Player owner, bool lightsOn = true) {
     return abi::member<0x49D5D0, int>(block_, owner.index(), lightsOn ? 1 : 0);
   }
-  /// The raw engine UnitBlock object pointer — used by the Group::addUnits / setTargCount / recordUnitBlock ops.
+  /// The raw engine UnitBlock object pointer - used by the Group::addUnits / setTargCount / recordUnitBlock ops.
   [[nodiscard]] void* raw() { return block_; }
 
 private:
@@ -84,11 +84,11 @@ private:
 
 /// Handle to an engine ScGroup (an ScStub index). FightGroup / MiningGroup / BuildingGroup all share this one
 /// handle; the methods are grouped by which kind of group they apply to (a method only does something on the
-/// matching group type — e.g. setupMining on a MiningGroup, recordBuilding on a BuildingGroup). Create one with
+/// matching group type - e.g. setupMining on a MiningGroup, recordBuilding on a BuildingGroup). Create one with
 /// createFightGroup / createMiningGroup / createBuildingGroup below.
 class Group {
 public:
-  static constexpr int kNilIndex = 255;   ///< ScStubList::NilIndex — note index 0 is a *valid* group
+  static constexpr int kNilIndex = 255;   ///< ScStubList::NilIndex - note index 0 is a *valid* group
   constexpr Group() = default;
   constexpr explicit Group(int id) : id_{ id } {}
   [[nodiscard]] constexpr int  id()    const noexcept { return id_; }
@@ -103,12 +103,12 @@ public:
   [[nodiscard]] int  totalUnitCount() const { int id = id_; return abi::member<0x479A10, int>(&id); }
   [[nodiscard]] bool isUnderAttack()  const { int id = id_; return abi::member<0x479AE0, int>(&id) != 0; }
 
-  /// Move ALL units out of `src` and into this group. (ScGroup::TakeAllUnits @0x479BA0 — takes ScGroup*.)
+  /// Move ALL units out of `src` and into this group. (ScGroup::TakeAllUnits @0x479BA0 - takes ScGroup*.)
   void takeAllUnits(Group src) { int id = id_; int s = src.id_; abi::member<0x479BA0, void>(&id, &s); }
   /// Count the group's units of a given classification (0 = vehicles, 1 = buildings, ... ClassDefdInTethys).
   /// (ScGroup::UnitCount @0x4799F0.)
   [[nodiscard]] int unitCount(int classification) const { int id = id_; return abi::member<0x4799F0, int>(&id, classification); }
-  /// How many of (unitType, weaponType) the group should keep on strength — drives reinforcement production from
+  /// How many of (unitType, weaponType) the group should keep on strength - drives reinforcement production from
   /// the matching BuildingGroup. (ScGroup::SetTargCount @0x479C70.)
   void setTargCount(MapID unitType, MapID weaponType, int count) {
     int id = id_; abi::member<0x479C70, void>(&id, int(unitType), int(weaponType), count);
@@ -116,7 +116,7 @@ public:
   void clearTargCount() { int id = id_; abi::member<0x479CB0, void>(&id); }  ///< Clear the target-count table.
   /// Create a whole UnitBlock's worth of units (for this group's owner) and add them. (AddUnits @0x4799D0.)
   void addUnits(UnitBlock& block) { int id = id_; abi::member<0x4799D0, void>(&id, block.raw()); }
-  /// Set per-(type,weapon) target counts from a UnitBlock — drives reinforcement. (SetTargCount @0x479C40.)
+  /// Set per-(type,weapon) target counts from a UnitBlock - drives reinforcement. (SetTargCount @0x479C40.)
   void setTargCount(UnitBlock& block) { int id = id_; abi::member<0x479C40, void>(&id, block.raw()); }
   /// [BuildingGroup] Record a UnitBlock for the group's factories to (re)produce. (RecordUnitBlock @0x47A330.)
   void recordUnitBlock(UnitBlock& block) { int id = id_; abi::member<0x47A330, void>(&id, block.raw()); }
@@ -217,7 +217,7 @@ struct EnginePWDef { int x1, y1, x2, y2, x3, y3, x4, y4, time1, time2, time3; };
 static_assert(sizeof(EnginePWDef) == 44, "PWDef must be 44 bytes");
 
 // The engine KEEPS a pointer to these wave tables (real missions declare them static), so the table we pass must
-// outlive the call — for the whole mission. We park each table in an append-only store; the data pointers stay
+// outlive the call - for the whole mission. We park each table in an append-only store; the data pointers stay
 // stable across growth because moving a std::vector preserves its heap buffer. (Set-once at init; tiny + leak-free
 // at DLL unload.)
 inline std::vector<std::vector<EnginePWDef>>& pwStore() { static std::vector<std::vector<EnginePWDef>> s; return s; }
@@ -240,7 +240,7 @@ public:
   // Arming or launching a Pinwheel with no waves defined makes the engine divide by zero assembling a zero-unit
   // wave (INT_DIVIDE_BY_ZERO near MapUnit::CalculateStrength).
 
-  /// Define the wave ROUTES — the paths a wave can travel (Pinwheel::SetPoints @0x47A8B0). At least one route is
+  /// Define the wave ROUTES - the paths a wave can travel (Pinwheel::SetPoints @0x47A8B0). At least one route is
   /// required before launching. Points are visible tiles.
   void setPoints(std::initializer_list<WavePath> routes) {
     auto& store = pinwheel_detail::pwStore();
@@ -287,7 +287,7 @@ private:
 };
 
 /// Create a Pinwheel wave-attacker owned by `owner` (CreatePinwheel @0x47A880). NOTE: unlike the Create*Group
-/// factories (which take `_Player` BY VALUE), CreatePinwheel takes it BY CONST REFERENCE — so we pass &pa.
+/// factories (which take `_Player` BY VALUE), CreatePinwheel takes it BY CONST REFERENCE - so we pass &pa.
 inline Pinwheel createPinwheel(Player owner) {
   group_detail::PlayerArg pa{ owner.index(), {} };
   int id = Pinwheel::kNilIndex;

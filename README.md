@@ -1,80 +1,137 @@
-# TitanAPI
+# Outpost 2 TitanAPI
 
-**A modern C++23 library for Outpost 2 missions.**
+**A modern C++23 SDK for writing Outpost 2 missions.**
 
-TitanAPI lets you write Outpost 2 missions and mods in clean, modern C++ — building straight on the
-reverse-engineered game engine, with no dependency on the legacy SDK stack.
+TitanAPI lets you script Outpost 2 colony, combat, and multiplayer missions in clean, modern C++ - building
+straight on the running game engine, with no legacy SDK stack to wrangle. Orders are checked and return errors
+instead of crashing the game, units and players are simple value handles, and a declarative BaseBuilder turns a
+starting colony into a few lines of data.
 
-It's a clean-room project that aims to **complete what TethysAPI set out to do**: a tidy, correct, complete
-modern C++ library for Outpost 2. It is a **separate, independent project** from TethysAPI (which is
-Arklon's) — named as a deliberate sibling: **Tethys and Titan are both moons of Saturn**. (`Tethys` is the
-Outpost 2 engine's internal name, which Arklon's library takes; `Titan` is its companion.)
+> **Status (June 2026): v0.6.0 - feature-complete and verified in-game.** Eight modules cover the full
+> mission-scripting surface (unit orders, state, enumeration, triggers + victory, AI groups, world & map,
+> mission lifecycle, base building). Every build is validated by a 155-check in-game self-test, and four sample
+> missions (single-player and multiplayer) ship in `samples/`.
 
-> **Status (June 2026, v0.5.43): Layer 1 complete; Layer 2 Modules 1–8 all complete — verified in-game.** The
-> facade reached **100% functional parity with OP2Lua** (the mature reference scripting API) and adds AI scripting
-> (ScGroups, UnitBlocks, Pinwheel waves), the full mission lifecycle (typed save/load + callbacks), and a
-> declarative **BaseBuilder** — validated every run by an in-game self-test of **155 checks (0 failures)**. A
-> sample mission drives a two-player colony — orders, building, a full mining operation, a tube network, triggers,
-> disasters, AI combat groups, save state, and a working victory condition — through the facade. See
-> [`ROADMAP.md`](ROADMAP.md), [`CHANGES.md`](CHANGES.md), and the parity map
-> [`re-reference/op2lua-parity.md`](re-reference/op2lua-parity.md).
+---
 
-## Two layers
+## Why TitanAPI
 
-- **Layer 1 — `op2::abi`** *(done)*: the reverse-engineering substrate. It relocates fixed `Outpost2.exe`
-  addresses and calls into them (free / `__thiscall` thunks, global reads, struct-field access). Its headers
-  are **generated from extracted *facts* about the game binary** (`re-reference/`), not hand-copied from any
-  library. Proven end-to-end in-game by the `samples/Layer1` mission.
-- **Layer 2 — the facade** *(Modules 1–8 complete)*: value-handle `Unit` / `Player` / `Game` with
-  `std::expected`-based orders. The full unit order set (move/attack/build/mine/dock/produce/doze/salvage/
-  removeWall/…) dispatches through one validated command-packet path — designing out the crash/no-op bug class
-  that has bitten TethysAPI's order API (raw `Cmd*` thunks; fixed per-function on its `fix-unit-commands` branch)
-  — and `Unit` reads live state (type/owner/location/cargo/health) from the
-  engine. Also: C++23 **ranges enumeration** of units, an **event/trigger** system with a name→callback registry,
-  **victory/defeat** conditions, **GameMap** tile/terrain queries, disasters, **AI ScGroups** (FightGroup/
-  MiningGroup/BuildingGroup, UnitBlocks, Pinwheel waves), the **mission lifecycle** (typed save/load + the
-  OnSaveGame/OnChat/OnEndMission/… callbacks), and a declarative **BaseBuilder**. Coverage is tracked against
-  OP2Lua in [`re-reference/op2lua-parity.md`](re-reference/op2lua-parity.md). Design: [`design/FACADE-DESIGN.md`](design/FACADE-DESIGN.md).
+- **Modern C++23.** `std::expected`-based error handling, `std::ranges` views over live units, `std::span`,
+  deducing-this, designated initializers - the language as it is in 2026, not 2005.
+- **Orders are safe.** Every unit order returns a `Result<void>`: a bad target or an off-map tile comes back as
+  a typed error you can branch on, instead of a silent no-op or an engine crash. All orders dispatch through one
+  validated command path.
+- **It tells you when it breaks.** Built-in crash diagnostics (SEH guards + a process-wide fault filter + a
+  tick-stamped, flushed-per-line log) turn "the game crashed" into "fault 0xC0000005 at 0x4367DA, tick 2" - a
+  problem you can actually fix.
+- **It's complete.** Unit orders, live state reads, ranges enumeration, the trigger/victory system, AI scripting
+  (fight/mining/building groups, unit blocks, wave attacks), disasters and terrain, typed save/load, and a
+  declarative base builder - all verified against the real engine.
+- **Clean room.** Built from facts about the game binary (addresses, struct offsets) produced by the Outpost
+  Universe community's reverse-engineering. No copied code.
+
+---
+
+## A mission in a few lines
+
+```cpp
+#include "op2.hpp"          // the TitanAPI facade
+#include "op2/trigger.hpp"  // triggers + win/lose
+
+using namespace op2;
+
+static void initProc() {
+    Player you = Game::player(0);
+    you.goEden();
+    you.setCommonOre(5000);
+    you.setWorkers(20);
+    you.setScientists(10);
+
+    // Stamp a starting colony from a declarative layout (coordinates are visible tiles).
+    BaseLayout base;
+    base.buildings = { { {10, 10}, MapID::CommandCenter }, { {14, 10}, MapID::Tokamak },
+                       { {10, 14}, MapID::Agridome } };
+    base.vehicles  = { { {12, 13}, MapID::Lynx, MapID::Laser }, { {13, 13}, MapID::ConVec } };
+    base.tubes     = { { {10, 12}, {14, 12} } };
+    createBase(you, base);
+
+    // Orders return Result<T> - failures are values, not crashes. Enumerate units with C++23 ranges.
+    for (Unit lynx : Game::unitsOfType(MapID::Lynx))
+        if (auto r = lynx.move({ 40, 40 }); !r)
+            log::line(r.error().what);
+
+    // Victory / defeat one-liners.
+    loseIfNoCommandCenter(0);                          // you lose if YOUR CC falls
+    winWhenColonyDestroyed(1, "Destroy the enemy");    // win when player 1 is wiped out
+
+    Game::addMessage("Good luck, commander.");
+}
+
+// The mission DLL exports the engine calls (each guarded so a fault is logged, not silent).
+extern "C" __declspec(dllexport) int  InitProc() { crash::guard("InitProc", &initProc); return 1; }
+extern "C" __declspec(dllexport) void AIProc()   {}
+```
+
+See [`samples/`](samples/) for complete, in-game-verified missions, and
+[`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md) for a step-by-step walkthrough.
+
+---
+
+## Features
+
+| Area | What you get |
+|---|---|
+| **Unit orders** | `move`, `attack`, `build`, `deploy`, `mine`, `dock`, `produce`, `doze`, `salvage`, `removeWall`, `repair`, `dismantle`, `guard`, ... - all `Result<void>`, all through one validated command-packet path |
+| **Unit state** | `isLive`, `type`, `owner`, `location`, `cargo`, `health`, `weapon`, `underConstruction`, `isFactory`, ... read live from the engine; works on any unit |
+| **Enumeration** | `Game::units()` / `unitsOf(p)` / `unitsOfType(t)` / `unitsInRect(...)` as composable `std::ranges` views |
+| **Triggers & victory** | time/count/resource/research triggers with C++ lambda callbacks; `victoryWhen` / `defeatWhen` / `win` / `lose` |
+| **AI scripting** | `FightGroup` / `MiningGroup` / `BuildingGroup` strategies, `UnitBlock` batch creation, `Pinwheel` attack waves |
+| **World & map** | disasters (meteor/quake/eruption/storm/vortex), lava control, terrain & cell queries, mining beacons, markers, sounds, messages |
+| **Mission lifecycle** | typed entry contract, typed save/load (`GetSaveRegions` + a `Stream` wrapper), `OnChat` / `OnSaveGame` / `OnEndMission` / ... callbacks |
+| **BaseBuilder** | declarative `BaseLayout` -> `createBase(player, layout, offset)`; tube/wall line helpers; map messages |
+| **Player** | faction/human/AI, resources & population, research, alliances, difficulty, satellite counts, center-view |
+| **Tooling** | a 155-check in-game self-test; crash diagnostics; tick-stamped logging |
+
+---
+
+## Getting started
+
+```
+cmake -S TitanAPI -B TitanAPI/build -G "Visual Studio 18 2026" -A Win32
+cmake --build TitanAPI/build --config Release
+```
+
+Outpost 2 is a 32-bit process, so missions build as **32-bit MSVC / C++23** (`/std:c++23preview`, static CRT).
+The output is a `c<Name>.dll` you drop into your Outpost 2 install; it appears in the game's mission list.
+
+Full walkthrough - prerequisites, your first mission, building, deploying, and running - is in
+**[`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md)**.
+
+---
 
 ## Repository layout
 
 ```
 op2titanapi/
-├─ README.md / ROADMAP.md / CHANGES.md   this overview, the plan, and the changelog
-├─ TitanAPI/        THE library + main dev folder: op2::abi headers (Layer 1, include/), the generators
-│                   (tools/gen-*.ps1), the current test mission (src/), and where the Layer 2 facade grows
-├─ samples/
-│  ├─ Layer1/       the Layer-1-only test mission, frozen as the first sample (vendors its own headers)
-│  ├─ ColonyDemo/   full Layer-2 demo (orders, mining, EMP-capture, enumeration); #includes TitanAPI/include
-│  ├─ ColdFront/    a showcase mission — a TitanAPI port of OP2Lua's "Cold Front" (BaseBuilder, scheduler,
-│                   AI mining/patrol/production, the lava eruption, starship victory)
-│  └─ Nostalgia2P/  a 2-player multiplayer (Last One Standing) sample — symmetric bases via createBase offset
-├─ re-reference/    the reverse-engineering FACTS (addresses, struct sizes/fields, enums, command packets)
-│                   + the extractors that produce them (RE-REFERENCE.md, command-packets.md, ABI-MECHANISM.md)
-├─ design/          FACADE-DESIGN.md — the Layer 2 design
-├─ docs/            ABI-MECHANISM.md (how op2::abi reads the game) + the ecosystem review report
-└─ CommandPacket/   the order/command system + multiplayer wire-protocol reference
+  README.md / ROADMAP.md / CHANGES.md   this overview, the plan, and the changelog
+  TitanAPI/        the library: op2:: facade headers (include/op2/) + the test mission (src/)
+  samples/         complete, in-game-verified missions you can read and adapt
+    Layer1/        a minimal first mission
+    ColonyDemo/    orders, mining, enumeration
+    ColdFront/     a single-player mission with a scripted AI, a lava eruption, and a starship victory
+    Nostalgia2P/   a 2-player multiplayer (Last One Standing) mission
+  docs/            GETTING-STARTED.md, FACADE-DESIGN.md (the design), ABI-MECHANISM.md (how the layer reads the game)
 ```
 
-## Build & run a mission
+Include the whole facade with a single `#include "op2.hpp"`; add `op2/trigger.hpp` for triggers/victory and
+`op2/base.hpp` for the BaseBuilder.
 
-`TitanAPI/` and `samples/Layer1/` are standalone CMake projects. **32-bit / MSVC / C++23** (MSVC
-`/std:c++23preview`), static CRT — Outpost 2 is a 32-bit process. From a folder with a `CMakeLists.txt`:
+---
 
-```
-cmake -S . -B build -G "Visual Studio 18 2026" -A Win32
-cmake --build build --config Release
-```
-→ a `c<Name>.dll` you drop into your OPU `maps\` folder; it shows up as a Colony game. See that folder's
-`README.md` and [`docs/ABI-MECHANISM.md`](docs/ABI-MECHANISM.md). For how TitanAPI relates to TethysAPI and when
-to use which, see [`docs/TitanAPI-vs-TethysAPI.md`](docs/TitanAPI-vs-TethysAPI.md).
+## Credits
 
-## Provenance & credits
+TitanAPI is generated from **facts about `Outpost2.exe`** - a fixed 1997 binary - which are the product of the
+Outpost Universe community's reverse-engineering work going back many years. Thanks to the OPU community for the
+RE that makes a modern SDK possible.
 
-The addresses, struct layouts, and enum values TitanAPI is generated from are **facts about `Outpost2.exe`**
-(a fixed 1997 binary) — the product of the Outpost Universe community's reverse-engineering going back to
-OP2Internal / HFL (2008+). **TethysAPI** (Arklon / Outpost Universe, BSD-3) is the most complete consolidated
-source of those facts; TitanAPI reads them out into its own generated form and does not copy TethysAPI's
-code or expression. Thanks to Arklon and the OPU community for the RE that makes any of this possible.
-
-Namespace: `op2` (Layer 2) / `op2::abi` (Layer 1).
+Namespace: `op2`. License: TBD.

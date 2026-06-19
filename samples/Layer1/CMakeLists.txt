@@ -1,7 +1,7 @@
-# Layer1 — a Layer-1-only Outpost 2 mission DLL (proof that op2::abi can drive the live game).
+# Layer1 - a Layer-1-only Outpost 2 mission DLL (proof that op2::abi can drive the live game).
 # 32-bit / MSVC / C++23. Produces cLayer1.dll (the leading 'c' files it under Colony Games).
 #
-# Configure & build (Visual Studio generator — note the REQUIRED 32-bit platform):
+# Configure & build (Visual Studio generator - note the REQUIRED 32-bit platform):
 #     cmake -S . -B build -G "Visual Studio 18 2026" -A Win32
 #     cmake --build build --config Release
 # Output: build/Release/cLayer1.dll
@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.21)
 project(Layer1 VERSION 0.1.0 LANGUAGES CXX RC DESCRIPTION "Outpost 2 Layer-1 proof mission DLL")
 
 if(NOT MSVC)
-  message(FATAL_ERROR "Outpost 2 is a 32-bit MSVC target — build with MSVC (cl.exe).")
+  message(FATAL_ERROR "Outpost 2 is a 32-bit MSVC target - build with MSVC (cl.exe).")
 endif()
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
   message(FATAL_ERROR

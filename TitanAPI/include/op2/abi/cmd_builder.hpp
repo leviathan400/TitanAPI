@@ -1,5 +1,5 @@
 #pragma once
-// cmd_builder.hpp — build a valid CommandPacket safely (Layer 1 / op2::abi).
+// cmd_builder.hpp - build a valid CommandPacket safely (Layer 1 / op2::abi).
 //
 // Every Outpost 2 order is one CommandPacket handed to PlayerImpl::ProcessCommandPacket (0x40E300). Whatever
 // the command, its payload has the same shape:
@@ -7,9 +7,9 @@
 //     [ unit-list header ] [ optional waypoint list ] [ fixed trailing fields ]
 //
 // This builder writes those parts into the 99-byte payload at the correct *running* offsets and tracks
-// dataLength — so the order layer never hand-fills a header. unitID[]/waypoint[] are flexible arrays: with N
+// dataLength - so the order layer never hand-fills a header. unitID[]/waypoint[] are flexible arrays: with N
 // units the waypoint list starts at 1 + 2*N, NOT at MoveCommand's nominal struct offset, which is exactly
-// why hand-filling these went wrong. CmdBuilder owns the one correct place numUnits/unitID[] is written —
+// why hand-filling these went wrong. CmdBuilder owns the one correct place numUnits/unitID[] is written -
 // the spot TethysAPI's DoMiningRoute got wrong (it set numUnits = the unit id). See
 // re-reference/command-packets.md and design/FACADE-DESIGN.md.
 
@@ -26,7 +26,7 @@ class CmdBuilder {
 public:
   explicit CmdBuilder(CommandType type) { packet_.type = type; }
 
-  // --- unit-list header (SimpleCommand: numUnits + unitID[]) — the bug-prone header, written once here ---
+  // --- unit-list header (SimpleCommand: numUnits + unitID[]) - the bug-prone header, written once here ---
   CmdBuilder& units(std::span<const raw::u16> ids) {
     put8(static_cast<raw::u8>(ids.size()));
     for (raw::u16 id : ids) put16(id);
@@ -53,7 +53,7 @@ public:
   bool ok() const { return ok_; }
   raw::u16 dataLength() const { return static_cast<raw::u16>(len_); }
 
-  /// Finalize: stamp dataLength (= payload bytes used) and return the packet. timeStamp/netID stay 0 —
+  /// Finalize: stamp dataLength (= payload bytes used) and return the packet. timeStamp/netID stay 0 -
   /// those are network-only; a locally-issued order leaves them zero.
   const raw::CommandPacket& build() {
     packet_.dataLength = static_cast<raw::u16>(len_);

@@ -1,7 +1,7 @@
 #pragma once
-// op2/core/location.hpp — map coordinate value type for the facade.
+// op2/core/location.hpp - map coordinate value type for the facade.
 //
-// Authors use IN-GAME (visible) tile coordinates — what you see on screen. Outpost 2 keeps an off-screen
+// Authors use IN-GAME (visible) tile coordinates - what you see on screen. Outpost 2 keeps an off-screen
 // map border, so the engine's internal tile is offset; the facade adds the pad at the engine boundary.
 
 #include <cstdint>
@@ -28,7 +28,7 @@ struct Location {
   /// GameMap is wrapped.
   [[nodiscard]] constexpr bool onMap() const { return x >= 0 && y >= 0; }
 
-  /// Engine pixel coordinates (tile*32, +16 when centered) — what the engine's pathfinder waypoints use.
+  /// Engine pixel coordinates (tile*32, +16 when centered) - what the engine's pathfinder waypoints use.
   [[nodiscard]] constexpr int enginePixelX(bool centered = true) const { return engineX() * 32 + (centered ? 16 : 0); }
   [[nodiscard]] constexpr int enginePixelY(bool centered = true) const { return engineY() * 32 + (centered ? 16 : 0); }
 

@@ -1,8 +1,8 @@
 #pragma once
-// op2_log.hpp — tiny append-only debug logger for the TitanAPI mission.
+// op2_log.hpp - tiny append-only debug logger for the TitanAPI mission.
 //
 // Writes to  <Outpost2.exe dir>\OPU\logs\cColonyDemo.log  (or <dir>\logs if the exe already sits in an OPU
-// folder). Each line is opened+written+closed via raw Win32 (KERNEL32 only — no <windows.h>, so it does
+// folder). Each line is opened+written+closed via raw Win32 (KERNEL32 only - no <windows.h>, so it does
 // not clash with memory.hpp's GetModuleHandleA declaration; keeps the DLL importing only KERNEL32). The
 // open/close-per-line cost buys a crucial property for crash debugging: the last line is flushed to disk
 // before the next call runs, so if an engine call crashes the game, its "about to call" line is preserved.
