@@ -7,7 +7,7 @@ straight on the running game engine, with no legacy SDK stack to wrangle. Orders
 instead of crashing the game, units and players are simple value handles, and a declarative BaseBuilder turns a
 starting colony into a few lines of data.
 
-> **Status (June 2026): v0.6.0 - feature-complete and verified in-game.** Eight modules cover the full
+> **Status: v0.6.0 - feature-complete and verified in-game.** Eight modules cover the full
 > mission-scripting surface (unit orders, state, enumeration, triggers + victory, AI groups, world & map,
 > mission lifecycle, base building). Every build is validated by a 155-check in-game self-test, and four sample
 > missions (single-player and multiplayer) ship in `samples/`.
@@ -113,7 +113,7 @@ Full walkthrough - prerequisites, your first mission, building, deploying, and r
 
 ```
 op2titanapi/
-  README.md / ROADMAP.md / CHANGES.md   this overview, the plan, and the changelog
+  README.md / CHANGELOG.md   this overview and the changelog
   TitanAPI/        the library: op2:: facade headers (include/op2/) + the test mission (src/)
   samples/         complete, in-game-verified missions you can read and adapt
     Layer1/        a minimal first mission
@@ -134,4 +134,4 @@ TitanAPI is generated from **facts about `Outpost2.exe`** - a fixed 1997 binary 
 Outpost Universe community's reverse-engineering work going back many years. Thanks to the OPU community for the
 RE that makes a modern SDK possible.
 
-Namespace: `op2`. License: TBD.
+Namespace: `op2`.

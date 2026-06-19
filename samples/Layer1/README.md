@@ -96,8 +96,7 @@ returned unit id, then the `AIProc` first tick and detach. The first log line pr
 
 ## Notes
 
-- **Plymouth/Eden:** the units used (CC, MHD Generator, Common Storage, ConVec, Lynx, Scout, Microwave) are
-  common to both factions, so switching `isEden_` doesn't break anything.
+- **Plymouth/Eden:** the units used can be placed for both factions, so switching `isEden_` doesn't break anything.
 - **Why ore persists but needs storage:** OP2 derives metals (common/rare ore) capacity from buildings, so
   `commonOre_` only "sticks" because the Common Ore Storage is present and active. Food and population are
   raw pools and persist regardless.
