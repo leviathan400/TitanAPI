@@ -5,7 +5,6 @@
 // (Outpost 2 is compiled exception-disabled, so the facade must not throw across the DLL boundary.)
 
 #include <expected>
-#include <string_view>
 #include <cstdint>
 
 namespace op2 {
@@ -25,10 +24,11 @@ enum class Status : std::uint8_t {
   EngineRejected,   ///< the engine returned a failure sentinel
 };
 
-/// A small, cheap error value (no heap). `what` points at a static string.
+/// A small, cheap error value (no heap). `what` points at a static, null-terminated string - a `const char*`
+/// so it drops straight into `printf`-family, `op2::log::line`, and `OutputDebugStringA` without conversion.
 struct Error {
-  Status           status = Status::Ok;
-  std::string_view what   = {};
+  Status      status = Status::Ok;
+  const char* what   = "";
 };
 
 /// The result of a fallible operation. `Result<void>` for orders; `Result<T>` for things that produce a value.
@@ -50,5 +50,11 @@ inline constexpr Error EngineRejected  { Status::EngineRejected,  "engine reject
 
 /// Build an `unexpected` Error to `return` from a `Result<T>`-returning function.
 inline std::unexpected<Error> fail(Error e) { return std::unexpected(e); }
+
+/// Explicitly discard a `[[nodiscard]]` Result when fire-and-forget is intended - e.g. an AI loop that issues an
+/// order every tick and doesn't branch on a momentary engine rejection. Makes "I'm not checking this on purpose"
+/// visible in the code, while an ACCIDENTAL bare discard still warns. Usage: `op2::ignore(unit.move(x, y));`
+template <class T>
+constexpr void ignore(T&&) noexcept {}
 
 } // namespace op2

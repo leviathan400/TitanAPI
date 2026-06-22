@@ -29,7 +29,7 @@ extern "C" __declspec(dllexport) ModDescEx DescBlockEx    = { /*numMultiplayerAI
 /// Log a Result<void> setup step (and any error message). Demonstrates the facade's error-as-value API.
 static void step(const op2::Result<void>& r, const char* what) {
   if (r) op2::log::linef("  %s: ok", what);
-  else   op2::log::linef("  ! %s FAILED: %.*s", what, int(r.error().what.size()), r.error().what.data());
+  else   op2::log::linef("  ! %s FAILED: %s", what, r.error().what);
 }
 
 // Units we keep around to demonstrate the order API from the game loop (see AIProc): one per player, so we
@@ -88,7 +88,7 @@ static void chk(bool cond, const char* name) {
 /// Record a Result<void> check (logs the error text on failure).
 static void chkR(const op2::Result<void>& r, const char* name) {
   if (r) { ++g_pass; op2::log::linef("  [PASS] %s", name); }
-  else   { ++g_fail; op2::log::linef("  [FAIL] %s: %.*s", name, int(r.error().what.size()), r.error().what.data()); }
+  else   { ++g_fail; op2::log::linef("  [FAIL] %s: %s", name, r.error().what); }
 }
 
 /// Record an EXPECTED-FAILURE check: PASS when `r` is an error of exactly `want` (verifies the error-as-value
@@ -125,15 +125,16 @@ static void run() {
   chk((wb & 0x7FFFu) == unsigned(86 * 32 + 16) && ((wb >> 15) & 0x3FFFu) == unsigned(83 * 32 + 16),
                                                                     "Location::waypointBits");
 
-  // ---- Player: faction toggles (restored to Plymouth/Human) + setters ----
-  chkR(p0.goEden(),                    "Player::goEden");
-  chkR(p0.goPlymouth(),                "Player::goPlymouth (restore)");
-  chkR(p0.goAI(),                      "Player::goAI");
-  chkR(p0.goHuman(),                   "Player::goHuman (restore)");
-  chkR(p0.setPopulation(20, 10, 10),   "Player::setPopulation");
-  chkR(p0.setFood(5000, 10000),        "Player::setFood");
-  chkR(p0.setCommonOre(5000, 10000),   "Player::setCommonOre");
-  chkR(p0.setTechLevel(12),            "Player::setTechLevel");
+  // ---- Player: faction toggles + setters (now fluent/chainable; each verified by reading the value back) ----
+  p0.goEden();                       chk(p0.isEden(),     "Player::goEden");
+  p0.goPlymouth();                   chk(p0.isPlymouth(), "Player::goPlymouth (restore)");
+  p0.goAI();                         chk(p0.isAI(),       "Player::goAI");
+  p0.goHuman();                      chk(p0.isHuman(),    "Player::goHuman (restore)");
+  p0.setPopulation(20, 10, 10);      chk(p0.workers() == 20 && p0.scientists() == 10 && p0.kids() == 10, "Player::setPopulation");
+  p0.setFood(5000, 10000);           chk(p0.food() == 5000,      "Player::setFood");
+  p0.setCommonOre(5000, 10000);      chk(p0.commonOre() == 5000, "Player::setCommonOre");
+  // setTechLevel grants techs up to L12; verify the tech read path round-trips (markResearchComplete -> hasTechnology).
+  p0.setTechLevel(12); p0.markResearchComplete(2101); chk(p0.hasTechnology(2101), "Player::setTechLevel + hasTechnology");
 
   // ---- Game: world creators ----
   { auto beacon = op2::Game::createMine({ 60, 100 });
@@ -361,7 +362,7 @@ static void run() {
   // ---- negative / error-path tests: the facade must return clean Result errors, never crash ----
   chkErr(op2::Unit{}.move({ 1, 1 }),                              op2::Status::NullHandle,      "move() on null Unit");
   chkErr(lynx.attack(op2::Unit{}),                                op2::Status::InvalidTarget,   "attack(null target)");
-  chkErr(op2::Game::player(99).goHuman(),                         op2::Status::InvalidPlayer,   "goHuman() bad player");
+  op2::Game::player(99).goHuman();  chk(!op2::Game::player(99).isHuman(), "goHuman() on bad player is a safe no-op");
   chkErr(op2::Game::createUnit(op2::MapID::Lynx, { -1, -1 }, p0), op2::Status::InvalidLocation, "createUnit() off-map");
   chkErr(op2::Game::createMine({ -1, -1 }),                       op2::Status::InvalidLocation, "createMine() off-map");
   chkErr(convecNK.build({ 62, 90 }),                             op2::Status::WrongType,       "build() with no kit");
@@ -370,11 +371,11 @@ static void run() {
   // ---- v0.5.32: Unit::enabled + Player resource/population setters ----
   chk(!lynx.enabled(),                          "Unit::enabled (vehicle -> false)");
   { const bool e = factory.enabled(); (void)e;  chk(true, "Unit::enabled building read (no crash)"); }
-  // Exercise each setter by writing the player's CURRENT value back (no net change to the live colony).
-  chkR(p0.setRareOre(p0.rareOre()),             "Player::setRareOre");
-  chkR(p0.setWorkers(p0.workers()),             "Player::setWorkers");
-  chkR(p0.setScientists(p0.scientists()),       "Player::setScientists");
-  chkR(p0.setKids(p0.kids()),                   "Player::setKids");
+  // Exercise each setter by writing a changed value, verifying the read-back, then restoring (no net change).
+  { const int v = p0.rareOre();    p0.setRareOre(v + 7);    chk(p0.rareOre() == v + 7,    "Player::setRareOre");    p0.setRareOre(v); }
+  { const int v = p0.workers();    p0.setWorkers(v + 7);    chk(p0.workers() == v + 7,    "Player::setWorkers");    p0.setWorkers(v); }
+  { const int v = p0.scientists(); p0.setScientists(v + 7); chk(p0.scientists() == v + 7, "Player::setScientists"); p0.setScientists(v); }
+  { const int v = p0.kids();       p0.setKids(v + 7);       chk(p0.kids() == v + 7,       "Player::setKids");       p0.setKids(v); }
   // Player::units(type) - player-scoped enumeration (the last OP2Lua parity item).
   { auto pAll = p0.units(); auto pLynx = p0.units(MapID::Lynx);
     chk(!pAll.empty(),                          "Player::units() non-empty for the live colony");
@@ -446,14 +447,11 @@ static void initProcImpl() {
   // (The engine->C++ time-trigger callback is still demonstrated by the mark-8 meteor below. Victory/defeat
   // conditions are created at the END of InitProc - AFTER the colonies exist - so count triggers don't latch.)
 
-  // ---- player setup ----
+  // ---- player setup (fluent: setup is infallible, so it chains) ----
   op2::Player p0 = op2::Game::player(0);
-  step(p0.goPlymouth(),                      "goPlymouth");
-  step(p0.goHuman(),                         "goHuman");
-  step(p0.setPopulation(20, 10, 10),         "setPopulation(20w/10s/10k)");
-  step(p0.setFood(5000, /*cap*/ 10000),      "setFood(5000)");
-  step(p0.setCommonOre(5000, /*cap*/ 10000), "setCommonOre(5000)");
-  step(p0.setTechLevel(12),                  "setTechLevel(12)");
+  p0.goPlymouth().goHuman().setPopulation(20, 10, 10).setFood(5000, /*cap*/ 10000)
+    .setCommonOre(5000, /*cap*/ 10000).setTechLevel(12);
+  op2::log::line("  player 0 set up (Plymouth / Human / 40 colonists / tech 12)");
 
   // ---- units (in-game / visible coordinates) ----
   auto place = [&](MapID type, int x, int y, MapID weapon = MapID::None) {
@@ -532,12 +530,9 @@ static void initProcImpl() {
   // ---- player 1: a computer-controlled (AI) Eden outpost ----
   op2::Player p1 = op2::Game::player(1);
   op2::log::line("  --- player 1 (AI Eden) ---");
-  step(p1.goEden(),                          "p1 goEden");
-  step(p1.goAI(),                            "p1 goAI");
-  step(p1.setPopulation(20, 10, 10),         "p1 setPopulation");
-  step(p1.setFood(5000, 10000),              "p1 setFood");
-  step(p1.setCommonOre(5000, 10000),         "p1 setCommonOre");
-  step(p1.setTechLevel(12),                  "p1 setTechLevel(12)");
+  p1.goEden().goAI().setPopulation(20, 10, 10).setFood(5000, 10000)
+    .setCommonOre(5000, 10000).setTechLevel(12);
+  op2::log::line("  player 1 set up (Eden / AI / tech 12)");
 
   auto place1 = [&](MapID type, int x, int y, MapID weapon = MapID::None) {
     const op2::Result<op2::Unit> u = op2::Game::createUnit(type, { x, y }, p1, weapon);
@@ -617,12 +612,12 @@ static void aiProcImpl() {
     const op2::Result<void> m0 = g_scout.move({ 55, 84 });   // player 0
     if (m0) op2::log::linef("  g_scout.move(55,84): ok (id=%d)", g_scout.id());
     else    op2::log::linef("  ! g_scout.move FAILED: %.*s",
-                            int(m0.error().what.size()), m0.error().what.data());
+                            m0.error().what);
 
     const op2::Result<void> m1 = g_aiLynx.move({ 65, 74 });  // player 1 (AI) - within its relocated base
     if (m1) op2::log::linef("  g_aiLynx.move(65,74): ok (id=%d)", g_aiLynx.id());
     else    op2::log::linef("  ! g_aiLynx.move FAILED: %.*s",
-                            int(m1.error().what.size()), m1.error().what.data());
+                            m1.error().what);
 
     // Module 5: form an AI combat group around the Lynx and send it to HUNT the human player. This is the
     // "script an AI" path - the engine commands the GROUP strategically, instead of us ordering each unit.
@@ -661,13 +656,13 @@ static void aiProcImpl() {
     if (built) op2::log::linef("  g_buildConvec.build(56,81): ok (id=%d, kit-cargo=%d)",
                                g_buildConvec.id(), g_buildConvec.cargo());
     else       op2::log::linef("  ! g_buildConvec.build FAILED: %.*s",
-                               int(built.error().what.size()), built.error().what.data());
+                               built.error().what);
 
     // Mining route: both trucks haul ore mine <-> smelter (CargoRoute, built correctly).
     auto route = [&](op2::Unit& t, const char* name) {
       const op2::Result<void> r = t.mine(g_mine, g_smelter);
       if (r) op2::log::linef("  %s.mine(mine=%d, smelter=%d): ok", name, g_mine.id(), g_smelter.id());
-      else   op2::log::linef("  ! %s.mine FAILED: %.*s", name, int(r.error().what.size()), r.error().what.data());
+      else   op2::log::linef("  ! %s.mine FAILED: %s", name, r.error().what);
     };
     route(g_truck1, "truck1");
     route(g_truck2, "truck2");
@@ -710,23 +705,16 @@ static void aiProcImpl() {
     op2::log::linef("  enemy Lynx EMP'd -> reprogram: %s", r ? "ok" : "FAIL");
   }
 
-  // DIAGNOSTIC: once per mark, log every Scout's owner + tile, so we can see exactly which scout moves where
-  // (instead of guessing). Uses Module 3 enumeration.
+  // PROGRAMMATIC VICTORY (checked once per mark, via the Module 3 enumeration which skips dead units):
+  //   (1) the AI's Command Center is destroyed, OR (2) ALL the AI's buildings are destroyed.
   static int s_lastMark = -1;
   if (const int m = op2::Game::mark(); m != s_lastMark) {
     s_lastMark = m;
-    for (op2::Unit u : op2::Game::unitsOfType(MapID::Scout)) {
-      const op2::Location l = u.location();
-      op2::log::linef("  [mark %d] Scout id=%d owner=%d at vis(%d,%d)", m, u.id(), u.ownerId(), l.x, l.y);
-    }
-    // PROGRAMMATIC VICTORY - two win conditions, via the Module 3 enumeration (skips dead units):
-    //   (1) the AI's Command Center is destroyed, OR (2) ALL the AI's buildings are destroyed.
     static bool s_won = false;
     if (!s_won) {
       const int aiCCs = op2::Game::playerUnitCount(1, MapID::CommandCenter);
       int aiBuildings = 0;
       for (op2::Unit u : op2::Game::unitsOf(1)) if (u.isBuilding()) ++aiBuildings;
-      op2::log::linef("  [mark %d] AI buildings=%d, CommandCenters=%d", m, aiBuildings, aiCCs);
       if (aiCCs == 0) {
         s_won = true; op2::win("Destroy the enemy Command Center");
         op2::log::line("  >>> AI Command Center destroyed -> op2::win()");

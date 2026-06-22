@@ -1,7 +1,57 @@
 # Changelog
 
 All notable changes to **Outpost 2 TitanAPI** are documented here. This is the public changelog; it begins at
-the first public release. Versions follow [Semantic Versioning](https://semver.org).
+the first public release.
+
+## 0.6.2 - 2026-06-22 - Engine-fact corrections
+
+Accuracy fixes to the `op2::abi` layer (the decoded view of the game binary). No public API surface change.
+
+- Decoded two `CellTypeInfo` terrain fields - `blocksLineOfSight` (@0x18) and `minimapTopographicColor` (@0x20).
+- Corrected `StartupFlags.moraleEnabled` -> `moraleSteady` (the flag's sense was reversed: set = morale is locked
+  steady), and `MapObjectType.requiredTechID_` -> `requiredTechNum_`.
+- Documented the `MapObjectType` table end (`0x4E1514`), confirming the 115-entry count.
+
+## 0.6.1 - 2026-06-20 - Ergonomics & correctness pass
+
+A hardening pass so real, non-trivial missions stay warning-free and readable, with a couple of genuine fixes
+surfaced by review.
+
+### Changed (small API refinements)
+
+- **Colony setup is now fluent.** `Player::goEden` / `goPlymouth` / `goHuman` / `goAI` / `setPopulation` /
+  `setCommonOre` / `setFood` / `setRareOre` / `setWorkers` / `setScientists` / `setKids` / `setTechLevel` now
+  return `Player&` instead of `Result<void>`. Setup can only "fail" on an invalid player index (a programmer
+  error, treated as a safe no-op), so there was no meaningful status to check - and discarding it on every setup
+  line produced `[[nodiscard]]` warnings. Setup now chains and stays warning-free:
+  `Game::player(0).goEden().setCommonOre(5000).setWorkers(20).setScientists(10);`
+- **`Error::what` is now `const char*`** (was `std::string_view`). It always points at a static literal, and as
+  a C string it drops straight into `printf`-family, `op2::log::line`, and `OutputDebugStringA` with no
+  conversion.
+
+### Added
+
+- **`op2::ignore(...)`** - explicitly discard a `[[nodiscard]]` order `Result` when fire-and-forget is intended
+  (e.g. an AI loop that issues an order every tick and doesn't branch on a momentary rejection). Makes intent
+  visible while keeping an *accidental* discard a warning. Orders stay `[[nodiscard]]` and checkable by default.
+
+### Fixed
+
+- **Trigger callback pool raised from 16 to 64.** A non-trivial mission with many time / area / count / research
+  triggers could silently exhaust the 16-slot dispatcher pool; the 17th trigger was lost. The pool is now 64
+  (derived from the stub list, with a compile-time sync `static_assert` and a loud `OutputDebugString` warning if
+  ever exhausted).
+- **The README's headline example now compiles cleanly (0 errors, 0 warnings).** It previously referenced
+  `log::line(error.what)` (a `string_view` that wouldn't pass to a `const char*` API) and omitted two includes.
+- **`Player` readers on an out-of-range player index no longer fault.** `Player::impl()` computed
+  `base + index*stride` for any index, so a reader like `Game::player(99).isHuman()` dereferenced a wild pointer
+  (`0xC0000005`). `impl()` now range-checks the index first and returns null (the reader then yields a safe 0).
+
+### Internal
+
+- The in-game self-test still runs **155 checks** - the 13 setup checks were converted from "call returned OK"
+  to value read-backs (stronger: they confirm the value actually landed), and all samples were swept clean of
+  discarded-`Result` warnings.
 
 ## 0.6.0 - 2026-06-19 - First public milestone
 

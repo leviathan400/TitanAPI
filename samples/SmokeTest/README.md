@@ -1,7 +1,8 @@
-# ColonyDemo - TitanAPI sample
+# SmokeTest - the TitanAPI in-game smoke test
 
-A full sample mission showcasing the Layer 2 facade (Modules 1-3). A snapshot of the development test
-mission, frozen here as a reference for writing missions with TitanAPI.
+The mission used to validate every build of the library: a full colony that exercises the Layer 2 facade
+end to end and runs an **in-mission self-test** logging a `PASSED / FAILED` summary. A snapshot of the
+development test mission, kept here so anyone can drop it in and confirm a build is healthy.
 
 It demonstrates, on `cm01.map` with two players (human Plymouth + an AI Eden):
 
@@ -27,5 +28,6 @@ cmake -S . -B build -G "Visual Studio 18 2026" -A Win32
 cmake --build build --config Release
 ```
 
-→ `build/Release/cColonyDemo.dll`. Drop it into your OPU `maps\` folder; it appears as a Colony game
-("TitanAPI Colony Demo") and logs to `<OP2>\OPU\logs\cColonyDemo.log`.
+→ `build/Release/cTitanSmokeTest.dll`. Drop it into your OPU `maps\` folder; it appears as a Colony game
+("TitanAPI Smoke Test") and logs to `<OP2>\OPU\logs\cTitanSmokeTest.log` - check the tail for the
+`SELF-TEST: N PASSED, 0 FAILED` line.

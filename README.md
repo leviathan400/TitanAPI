@@ -7,7 +7,7 @@ straight on the running game engine, with no legacy SDK stack to wrangle. Orders
 instead of crashing the game, units and players are simple value handles, and a declarative BaseBuilder turns a
 starting colony into a few lines of data.
 
-> **Status: v0.6.0 - feature-complete and verified in-game.** Eight modules cover the full
+> **Status: v0.6.2 - feature-complete and verified in-game.** Eight modules cover the full
 > mission-scripting surface (unit orders, state, enumeration, triggers + victory, AI groups, world & map,
 > mission lifecycle, base building). Every build is validated by a 155-check in-game self-test, and four sample
 > missions (single-player and multiplayer) ship in `samples/`.
@@ -18,9 +18,10 @@ starting colony into a few lines of data.
 
 - **Modern C++23.** `std::expected`-based error handling, `std::ranges` views over live units, `std::span`,
   deducing-this, designated initializers - the language as it is in 2026, not 2005.
-- **Orders are safe.** Every unit order returns a `Result<void>`: a bad target or an off-map tile comes back as
-  a typed error you can branch on, instead of a silent no-op or an engine crash. All orders dispatch through one
-  validated command path.
+- **Orders are safe.** Every unit order returns a `[[nodiscard]] Result<void>`: a bad target or an off-map tile
+  comes back as a typed error you can branch on, instead of a silent no-op or an engine crash. All orders
+  dispatch through one validated command path. For deliberate fire-and-forget (e.g. an AI loop), `op2::ignore(...)`
+  discards a result explicitly - so an *accidental* unchecked order still warns.
 - **It tells you when it breaks.** Built-in crash diagnostics (SEH guards + a process-wide fault filter + a
   tick-stamped, flushed-per-line log) turn "the game crashed" into "fault 0xC0000005 at 0x4367DA, tick 2" - a
   problem you can actually fix.
@@ -35,17 +36,17 @@ starting colony into a few lines of data.
 ## A mission in a few lines
 
 ```cpp
-#include "op2.hpp"          // the TitanAPI facade
+#include "op2.hpp"          // the TitanAPI facade (Game / Player / Unit / orders / BaseBuilder)
 #include "op2/trigger.hpp"  // triggers + win/lose
+#include "op2_log.hpp"      // mission logging    } small scaffolding headers that
+#include "op2_crash.hpp"    // crash diagnostics  } ship with the sample template
 
 using namespace op2;
 
 static void initProc() {
+    // Colony setup is fluent - it chains and never needs a result check.
     Player you = Game::player(0);
-    you.goEden();
-    you.setCommonOre(5000);
-    you.setWorkers(20);
-    you.setScientists(10);
+    you.goEden().setCommonOre(5000).setWorkers(20).setScientists(10);
 
     // Stamp a starting colony from a declarative layout (coordinates are visible tiles).
     BaseLayout base;
@@ -118,7 +119,7 @@ op2titanapi/
   TitanAPI/        the library: op2:: facade headers (include/op2/) + the test mission (src/)
   samples/         complete, in-game-verified missions you can read and adapt
     Layer1/        a minimal first mission
-    ColonyDemo/    orders, mining, enumeration
+    SmokeTest/     orders, mining, enumeration + an in-mission self-test (validates every build)
     ColdFront/     a single-player mission with a scripted AI, a lava eruption, and a starship victory
     Nostalgia2P/   a 2-player multiplayer (Last One Standing) mission
   docs/            GETTING-STARTED.md, FACADE-DESIGN.md (the design), ABI-MECHANISM.md (how the layer reads the game)
@@ -135,4 +136,13 @@ TitanAPI is generated from **facts about `Outpost2.exe`** - a fixed 1997 binary 
 Outpost Universe community's reverse-engineering work going back many years. Thanks to the OPU community for the
 RE that makes a modern SDK possible.
 
-Namespace: `op2`.
+It stands on the shoulders of the mission-development libraries that came before it and charted the engine
+surface a modern SDK needs:
+
+- **Outpost2DLL** - the original C++ library for writing Outpost 2 missions, and the long-standing foundation
+  for community mission making.
+- **HFL** (Hacker's Function Library) - extends that engine access with additional functions and fixes.
+- **OP2Helper** - higher-level conveniences, including the base-building helpers that TitanAPI's declarative
+  BaseBuilder is descended from.
+- **TethysAPI** (by Arklon) - the modern C++ re-implementation with direct access to the engine's non-exported
+  internals.

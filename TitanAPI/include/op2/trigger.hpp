@@ -47,17 +47,27 @@ private:
 
 namespace trigger_detail {
 
-inline constexpr int kMaxCallbacks = 16;          ///< size of the dispatcher-stub pool below
+/// Stub names - these MUST match the exported TitanTrigger<n> functions defined just after this namespace. The
+/// pool is sized generously (64) so even a large campaign mission with many timed / area / count / research
+/// triggers never runs out. kMaxCallbacks is DERIVED from this array, so the names array (and the matching stub
+/// list below) are the single source of truth; a static_assert after the stubs guards that they stay in sync.
+inline const char* const g_names[] = {
+  "TitanTrigger0",  "TitanTrigger1",  "TitanTrigger2",  "TitanTrigger3",  "TitanTrigger4",  "TitanTrigger5",  "TitanTrigger6",  "TitanTrigger7",
+  "TitanTrigger8",  "TitanTrigger9",  "TitanTrigger10", "TitanTrigger11", "TitanTrigger12", "TitanTrigger13", "TitanTrigger14", "TitanTrigger15",
+  "TitanTrigger16", "TitanTrigger17", "TitanTrigger18", "TitanTrigger19", "TitanTrigger20", "TitanTrigger21", "TitanTrigger22", "TitanTrigger23",
+  "TitanTrigger24", "TitanTrigger25", "TitanTrigger26", "TitanTrigger27", "TitanTrigger28", "TitanTrigger29", "TitanTrigger30", "TitanTrigger31",
+  "TitanTrigger32", "TitanTrigger33", "TitanTrigger34", "TitanTrigger35", "TitanTrigger36", "TitanTrigger37", "TitanTrigger38", "TitanTrigger39",
+  "TitanTrigger40", "TitanTrigger41", "TitanTrigger42", "TitanTrigger43", "TitanTrigger44", "TitanTrigger45", "TitanTrigger46", "TitanTrigger47",
+  "TitanTrigger48", "TitanTrigger49", "TitanTrigger50", "TitanTrigger51", "TitanTrigger52", "TitanTrigger53", "TitanTrigger54", "TitanTrigger55",
+  "TitanTrigger56", "TitanTrigger57", "TitanTrigger58", "TitanTrigger59", "TitanTrigger60", "TitanTrigger61", "TitanTrigger62", "TitanTrigger63",
+};
+inline constexpr int kMaxCallbacks = int(sizeof(g_names) / sizeof(g_names[0]));   ///< dispatcher-stub pool size (64)
 inline std::function<void()> g_callbacks[kMaxCallbacks];
 inline int g_count = 0;
 
-/// Stub names - must match the exported TitanTrigger<n> functions defined just after this namespace.
-inline const char* const g_names[kMaxCallbacks] = {
-  "TitanTrigger0",  "TitanTrigger1",  "TitanTrigger2",  "TitanTrigger3",
-  "TitanTrigger4",  "TitanTrigger5",  "TitanTrigger6",  "TitanTrigger7",
-  "TitanTrigger8",  "TitanTrigger9",  "TitanTrigger10", "TitanTrigger11",
-  "TitanTrigger12", "TitanTrigger13", "TitanTrigger14", "TitanTrigger15",
-};
+/// Forward-declared (like GetModuleHandleA in memory.hpp) so this header needn't pull in <windows.h>. Used to
+/// surface pool exhaustion to a debugger / DebugView instead of failing silently.
+extern "C" __declspec(dllimport) void __stdcall OutputDebugStringA(const char*);
 
 /// Invoke the callback registered in slot `i` (called by the exported TitanTrigger<i> stubs).
 inline void fire(int i) {
@@ -66,7 +76,11 @@ inline void fire(int i) {
 
 /// Reserve a slot for `cb`; returns its exported-stub name, or nullptr if the pool is exhausted.
 inline const char* reserve(std::function<void()> cb) {
-  if (g_count >= kMaxCallbacks) return nullptr;
+  if (g_count >= kMaxCallbacks) {
+    OutputDebugStringA("TitanAPI: trigger callback pool exhausted - raise kMaxCallbacks in trigger.hpp, "
+                       "or use a named exported trigger function for the extra triggers.\n");
+    return nullptr;
+  }
   const int i = g_count++;
   g_callbacks[i] = std::move(cb);
   return g_names[i];
@@ -94,7 +108,24 @@ OP2_TITAN_TRIGGER_STUB(0)  OP2_TITAN_TRIGGER_STUB(1)  OP2_TITAN_TRIGGER_STUB(2) 
 OP2_TITAN_TRIGGER_STUB(4)  OP2_TITAN_TRIGGER_STUB(5)  OP2_TITAN_TRIGGER_STUB(6)  OP2_TITAN_TRIGGER_STUB(7)
 OP2_TITAN_TRIGGER_STUB(8)  OP2_TITAN_TRIGGER_STUB(9)  OP2_TITAN_TRIGGER_STUB(10) OP2_TITAN_TRIGGER_STUB(11)
 OP2_TITAN_TRIGGER_STUB(12) OP2_TITAN_TRIGGER_STUB(13) OP2_TITAN_TRIGGER_STUB(14) OP2_TITAN_TRIGGER_STUB(15)
+OP2_TITAN_TRIGGER_STUB(16) OP2_TITAN_TRIGGER_STUB(17) OP2_TITAN_TRIGGER_STUB(18) OP2_TITAN_TRIGGER_STUB(19)
+OP2_TITAN_TRIGGER_STUB(20) OP2_TITAN_TRIGGER_STUB(21) OP2_TITAN_TRIGGER_STUB(22) OP2_TITAN_TRIGGER_STUB(23)
+OP2_TITAN_TRIGGER_STUB(24) OP2_TITAN_TRIGGER_STUB(25) OP2_TITAN_TRIGGER_STUB(26) OP2_TITAN_TRIGGER_STUB(27)
+OP2_TITAN_TRIGGER_STUB(28) OP2_TITAN_TRIGGER_STUB(29) OP2_TITAN_TRIGGER_STUB(30) OP2_TITAN_TRIGGER_STUB(31)
+OP2_TITAN_TRIGGER_STUB(32) OP2_TITAN_TRIGGER_STUB(33) OP2_TITAN_TRIGGER_STUB(34) OP2_TITAN_TRIGGER_STUB(35)
+OP2_TITAN_TRIGGER_STUB(36) OP2_TITAN_TRIGGER_STUB(37) OP2_TITAN_TRIGGER_STUB(38) OP2_TITAN_TRIGGER_STUB(39)
+OP2_TITAN_TRIGGER_STUB(40) OP2_TITAN_TRIGGER_STUB(41) OP2_TITAN_TRIGGER_STUB(42) OP2_TITAN_TRIGGER_STUB(43)
+OP2_TITAN_TRIGGER_STUB(44) OP2_TITAN_TRIGGER_STUB(45) OP2_TITAN_TRIGGER_STUB(46) OP2_TITAN_TRIGGER_STUB(47)
+OP2_TITAN_TRIGGER_STUB(48) OP2_TITAN_TRIGGER_STUB(49) OP2_TITAN_TRIGGER_STUB(50) OP2_TITAN_TRIGGER_STUB(51)
+OP2_TITAN_TRIGGER_STUB(52) OP2_TITAN_TRIGGER_STUB(53) OP2_TITAN_TRIGGER_STUB(54) OP2_TITAN_TRIGGER_STUB(55)
+OP2_TITAN_TRIGGER_STUB(56) OP2_TITAN_TRIGGER_STUB(57) OP2_TITAN_TRIGGER_STUB(58) OP2_TITAN_TRIGGER_STUB(59)
+OP2_TITAN_TRIGGER_STUB(60) OP2_TITAN_TRIGGER_STUB(61) OP2_TITAN_TRIGGER_STUB(62) OP2_TITAN_TRIGGER_STUB(63)
 #undef OP2_TITAN_TRIGGER_STUB
+
+// Tripwire: if you resize g_names, update the stub list above to match (and this literal). The pool is DERIVED
+// from g_names, so these must stay the same length or the engine would be handed a name with no backing stub.
+static_assert(::op2::trigger_detail::kMaxCallbacks == 64,
+              "TitanTrigger stub list and g_names must stay the same length - update both.");
 
 namespace op2 {
 

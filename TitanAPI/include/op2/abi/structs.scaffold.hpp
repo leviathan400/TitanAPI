@@ -874,7 +874,7 @@ struct GameImpl {  // base: OP2Class<GameImpl>
 struct StartupFlags {
   std::uint32_t disastersEnabled : 1;
   std::uint32_t dayNightEnabled : 1;
-  std::uint32_t moraleEnabled : 1;
+  std::uint32_t moraleSteady : 1;     // SET = morale is locked steady (not used); "uses morale" == !moraleSteady (OPU RE - was moraleEnabled, which had the sense backwards)
   std::uint32_t isCampaign : 1;
   std::uint32_t isMultiplayer : 1;
   std::uint32_t cheatsEnabled : 1;
@@ -1000,10 +1000,11 @@ struct TileData {
 };
 
 struct CellTypeInfo {
-  char* pName;
-  int field_18;
-  int blightSpeed;
-  int field_20;
+  char* pName;                     // @0x00
+  // trackSpeed[TrackType::Count] occupies 0x04..0x18 (per-track-type move speed; not broken out here yet)
+  int   blocksLineOfSight;         // @0x18  ibool - does this terrain block line of sight?  (decoded via OPU RE; was field_18)
+  int   blightSpeed;               // @0x1C
+  int   minimapTopographicColor;   // @0x20  Rgb555 - topographic color on the minimap        (decoded via OPU RE; was field_20)
 };
 
 struct TilesetMapping {
@@ -1370,7 +1371,7 @@ struct GlobalUnitStats {
 struct MapObjectType {  // base: OP2Class<MapObjectType>
   MapID type_;
   PerPlayerUnitStats playerStats_[7];
-  int requiredTechID_;
+  int requiredTechNum_;             // required tech NUMBER to build this type (was requiredTechID_; OPU RE)
   TrackType trackType_;
   int field_1EC;
   SoundID selectSoundID_;

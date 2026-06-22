@@ -113,9 +113,11 @@ inline int moTypeId(char* p) {
 
 // ---- the MapObjectType table (unit-type stats; used by build for the footprint) ----------------------------
 
-inline constexpr int kNumMapObjTypes = 115;
+// The MapObjectType* table runs from 0x4E1348 to its end at 0x4E1514, so the count is (end - begin)/4 = 115.
+inline constexpr int kNumMapObjTypes = 115;   // == (0x4E1514 - 0x4E1348) / 4
 
-/// MapObjectType* (as char*) for a MapID, or nullptr. Table base is the data array at 0x4E1348.
+/// MapObjectType* (as char*) for a MapID, or nullptr. Table base is the data array at 0x4E1348
+/// (the table end is at 0x4E1514, giving kNumMapObjTypes = 115 entries).
 inline char* mapObjType(int mapId) {
   if (mapId < 0 || mapId >= kNumMapObjTypes) return nullptr;
   char** table = reinterpret_cast<char**>(reloc(0x4E1348));          // MapObjectType* table[]

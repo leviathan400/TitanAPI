@@ -27,19 +27,23 @@ public:
   [[nodiscard]] constexpr int  index() const noexcept { return idx_; }
   [[nodiscard]] constexpr bool valid() const noexcept { return idx_ >= 0 && idx_ < kMaxPlayers; }
 
-  // ---- colony setup (each writes live engine state) ----
-  Result<void> goEden()     { return setFaction(true);  }   ///< faction = Eden
-  Result<void> goPlymouth() { return setFaction(false); }   ///< faction = Plymouth
-  Result<void> goHuman();                                   ///< mark this a human-controlled colony
-  Result<void> goAI();                                      ///< mark this a computer-controlled (AI) player
-  Result<void> setPopulation(int workers, int scientists, int kids);
-  Result<void> setCommonOre(int amount, int capacity = 0);  ///< capacity 0 = leave as-is (needs storage to persist)
-  Result<void> setFood(int amount, int capacity = 0);
-  Result<void> setRareOre(int amount);                      ///< set the rare-ore pool (needs storage to persist, like ore)
-  Result<void> setWorkers(int n);                           ///< set the worker pool (OP2Lua player.workers setter)
-  Result<void> setScientists(int n);                        ///< set the scientist pool
-  Result<void> setKids(int n);                              ///< set the children pool
-  Result<void> setTechLevel(int techLevel);                 ///< grants all techs up to techLevel
+  // ---- colony setup ----
+  // Each writes live engine state and returns *this, so setup reads cleanly and chains:
+  //     Game::player(0).goEden().setCommonOre(5000).setWorkers(20).setScientists(10);
+  // Setup can only "fail" on an invalid player index (a programmer error), so there's no Result to check - unlike
+  // the orders in unit.hpp. An invalid player is a safe no-op.
+  Player& goEden()     { setFaction(true);  return *this; }  ///< faction = Eden
+  Player& goPlymouth() { setFaction(false); return *this; }  ///< faction = Plymouth
+  Player& goHuman();                                         ///< mark this a human-controlled colony
+  Player& goAI();                                            ///< mark this a computer-controlled (AI) player
+  Player& setPopulation(int workers, int scientists, int kids);
+  Player& setCommonOre(int amount, int capacity = 0);        ///< capacity 0 = leave as-is (needs storage to persist)
+  Player& setFood(int amount, int capacity = 0);
+  Player& setRareOre(int amount);                            ///< set the rare-ore pool (needs storage to persist, like ore)
+  Player& setWorkers(int n);                                 ///< set the worker pool (OP2Lua player.workers setter)
+  Player& setScientists(int n);                              ///< set the scientist pool
+  Player& setKids(int n);                                    ///< set the children pool
+  Player& setTechLevel(int techLevel);                       ///< grants all techs up to techLevel
 
   // ---- runtime reads (parity with OP2Lua player.*) - live PlayerImpl fields ----
   [[nodiscard]] int  food()       const { return readi(OFF_foodStored);   }  ///< stored food
@@ -65,6 +69,28 @@ public:
     char* p = impl(); return p && (abi::member<0x477570, int>(p, techID) != 0);
   }
   void markResearchComplete(int techID) { if (char* p = impl()) abi::member<0x477510, void>(p, techID); }
+  /// Recompute this player's cached CAPABILITY flags. The engine caches the results of canBuildSpace /
+  /// canDoResearch / canBuildBuilding / ... ; they read as stale (often zero -> false) until recomputed, so you
+  /// MUST call resetChecks() immediately before reading any of them. (PlayerImpl::ResetChecks @0x4776E0.)
+  void resetChecks() { if (char* p = impl()) abi::member<0x4776E0, void>(p); }
+  /// Can this player still build space-program structures? Goes false once the colony loses the ability to
+  /// complete the starship (PlayerImpl::CanBuildSpace @0x477890). Call resetChecks() first. Used by starship-race
+  /// failure conditions.
+  [[nodiscard]] bool canBuildSpace() const { char* p = impl(); return p && (abi::member<0x477890, int>(p) != 0); }
+  /// Can this player still research `techID` (has it, or the prerequisites remain reachable)?
+  /// (PlayerImpl::CanDoResearch @0x477BF0.)
+  [[nodiscard]] bool canDoResearch(int techID) const {
+    char* p = impl(); return p && (abi::member<0x477BF0, int>(p, techID) != 0);
+  }
+
+  /// Clear this player's STARSHIP launch/evacuation flags - the `satellites` bitfield at PlayerImpl+8 (launched
+  /// modules + Skydock + rare/common/food/evac/child cargo, each a 1-bit flag). The engine does NOT zero these
+  /// when you set a player up via goEden()/goAI() during InitProc, so they read STALE - which makes the standard
+  /// starship-race victory count-triggers (an `onUnitCount` on `MapID::Skydock` / `RareMetalsCargo` / ...) fire
+  /// spuriously on load. Call this during setup of any starship/evacuation mission for a clean launch state.
+  Player& clearStarshipState() { if (char* p = impl()) *reinterpret_cast<int*>(p + 8) = 0; return *this; }
+  /// Raw value of the `satellites` launch/evac bitfield (PlayerImpl+8). For diagnostics - 0 means no launches.
+  [[nodiscard]] int starshipFlags() const { char* p = impl(); return p ? *reinterpret_cast<int*>(p + 8) : -1; }
 
   // ---- alliances ----
   [[nodiscard]] bool isAlly(int playerNum) const {                          ///< fully allied both ways? @0x490D30
@@ -112,105 +138,107 @@ private:
   [[nodiscard]] int readi(int off) const { char* p = impl(); return p ? *reinterpret_cast<int*>(p + off) : 0; }
 
   /// PlayerImpl* (as char*) for this player, or nullptr. Base read from the code immediate at 0x4890C3.
+  /// MUST range-check idx_ first: the array has only kMaxPlayers entries, so `base + idx_*kStride` for an
+  /// out-of-range index is a wild pointer - dereferencing it (e.g. a reader on Game::player(99)) faults.
   [[nodiscard]] char* impl() const {
+    if (!valid()) return nullptr;
     char* base = abi::ref<char*>(0x4890C3);
     return base ? base + idx_ * kStride : nullptr;
   }
   static void seti(char* p, int off, int v) { *reinterpret_cast<int*>(p + off) = v; }
 
-  Result<void> setFaction(bool eden) {
-    if (!valid())          return fail(err::InvalidPlayer);
+  void setFaction(bool eden) {
+    if (!valid()) return;
     char* p = impl();
-    if (!p)                return fail(err::EngineRejected);
+    if (!p)       return;
     seti(p, OFF_isEden, eden ? 1 : 0);
-    return {};
   }
 
   int idx_ = -1;
 };
 
-inline Result<void> Player::goHuman() {
-  if (!valid()) return fail(err::InvalidPlayer);
+inline Player& Player::goHuman() {
+  if (!valid()) return *this;
   char* p = impl();
-  if (!p)       return fail(err::EngineRejected);
+  if (!p)       return *this;
   abi::member<0x4906C0, void>(p);                                  // PlayerImpl::GoHuman()
-  return {};
+  return *this;
 }
 
-inline Result<void> Player::goAI() {
-  if (!valid()) return fail(err::InvalidPlayer);
+inline Player& Player::goAI() {
+  if (!valid()) return *this;
   char* p = impl();
-  if (!p)       return fail(err::EngineRejected);
+  if (!p)       return *this;
   abi::member<0x490680, void>(p);                                  // PlayerImpl::GoAI()
-  return {};
+  return *this;
 }
 
-inline Result<void> Player::setPopulation(int workers, int scientists, int kids) {
-  if (!valid()) return fail(err::InvalidPlayer);
+inline Player& Player::setPopulation(int workers, int scientists, int kids) {
+  if (!valid()) return *this;
   char* p = impl();
-  if (!p)       return fail(err::EngineRejected);
+  if (!p)       return *this;
   seti(p, OFF_numWorkers, workers);
   seti(p, OFF_numScientists, scientists);
   seti(p, OFF_numKids, kids);
   seti(p, OFF_recalc, 1);                                          // nudge the engine to recompute derived values
-  return {};
+  return *this;
 }
 
-inline Result<void> Player::setCommonOre(int amount, int capacity) {
-  if (!valid()) return fail(err::InvalidPlayer);
+inline Player& Player::setCommonOre(int amount, int capacity) {
+  if (!valid()) return *this;
   char* p = impl();
-  if (!p)       return fail(err::EngineRejected);
+  if (!p)       return *this;
   if (capacity > 0) seti(p, OFF_maxCommonOre, capacity);
   seti(p, OFF_commonOre, amount);
-  return {};
+  return *this;
 }
 
-inline Result<void> Player::setFood(int amount, int capacity) {
-  if (!valid()) return fail(err::InvalidPlayer);
+inline Player& Player::setFood(int amount, int capacity) {
+  if (!valid()) return *this;
   char* p = impl();
-  if (!p)       return fail(err::EngineRejected);
+  if (!p)       return *this;
   if (capacity > 0) seti(p, OFF_maxFood, capacity);
   seti(p, OFF_foodStored, amount);
-  return {};
+  return *this;
 }
 
-inline Result<void> Player::setRareOre(int amount) {
-  if (!valid()) return fail(err::InvalidPlayer);
+inline Player& Player::setRareOre(int amount) {
+  if (!valid()) return *this;
   char* p = impl();
-  if (!p)       return fail(err::EngineRejected);
+  if (!p)       return *this;
   seti(p, OFF_rareOre, amount);                                    // plain field write (matches Tethys SetRareOre)
-  return {};
+  return *this;
 }
 
-inline Result<void> Player::setWorkers(int n) {
-  if (!valid()) return fail(err::InvalidPlayer);
+inline Player& Player::setWorkers(int n) {
+  if (!valid()) return *this;
   char* p = impl();
-  if (!p)       return fail(err::EngineRejected);
+  if (!p)       return *this;
   seti(p, OFF_numWorkers, n);  seti(p, OFF_recalc, 1);             // nudge a recompute of derived population values
-  return {};
+  return *this;
 }
 
-inline Result<void> Player::setScientists(int n) {
-  if (!valid()) return fail(err::InvalidPlayer);
+inline Player& Player::setScientists(int n) {
+  if (!valid()) return *this;
   char* p = impl();
-  if (!p)       return fail(err::EngineRejected);
+  if (!p)       return *this;
   seti(p, OFF_numScientists, n);  seti(p, OFF_recalc, 1);
-  return {};
+  return *this;
 }
 
-inline Result<void> Player::setKids(int n) {
-  if (!valid()) return fail(err::InvalidPlayer);
+inline Player& Player::setKids(int n) {
+  if (!valid()) return *this;
   char* p = impl();
-  if (!p)       return fail(err::EngineRejected);
+  if (!p)       return *this;
   seti(p, OFF_numKids, n);  seti(p, OFF_recalc, 1);
-  return {};
+  return *this;
 }
 
-inline Result<void> Player::setTechLevel(int techLevel) {
-  if (!valid()) return fail(err::InvalidPlayer);
+inline Player& Player::setTechLevel(int techLevel) {
+  if (!valid()) return *this;
   char* research = reinterpret_cast<char*>(abi::reloc(0x56C230));  // Research singleton @ 0x56C230
   abi::member<0x473030, void>(research, idx_, techLevel * 1000);   // Research::SetTechLevel(num, level*1000)
-  return {};
+  return *this;
 }
 
 } // namespace op2

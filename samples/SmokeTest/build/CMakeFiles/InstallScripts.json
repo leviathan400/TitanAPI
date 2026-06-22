@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"D:/opu/op2titanapi/samples/SmokeTest/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

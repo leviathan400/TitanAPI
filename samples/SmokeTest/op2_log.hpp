@@ -1,7 +1,7 @@
 #pragma once
 // op2_log.hpp - tiny append-only debug logger for the TitanAPI mission.
 //
-// Writes to  <Outpost2.exe dir>\OPU\logs\cColonyDemo.log  (or <dir>\logs if the exe already sits in an OPU
+// Writes to  <Outpost2.exe dir>\OPU\logs\cTitanSmokeTest.log  (or <dir>\logs if the exe already sits in an OPU
 // folder). Each line is opened+written+closed via raw Win32 (KERNEL32 only - no <windows.h>, so it does
 // not clash with memory.hpp's GetModuleHandleA declaration; keeps the DLL importing only KERNEL32). The
 // open/close-per-line cost buys a crucial property for crash debugging: the last line is flushed to disk
@@ -47,11 +47,11 @@ inline void resolve_path() {
   g_ready = true;
   char exe[600] = { 0 };
   const unsigned long n = GetModuleFileNameA(nullptr, exe, sizeof(exe));
-  if (n == 0 || n >= sizeof(exe)) { std::strcpy(g_path, "cColonyDemo.log"); return; }
+  if (n == 0 || n >= sizeof(exe)) { std::strcpy(g_path, "cTitanSmokeTest.log"); return; }
 
   int slash = -1;                                // strip the exe filename -> directory
   for (int i = 0; exe[i]; ++i) if (exe[i] == '\\') slash = i;
-  if (slash < 0) { std::strcpy(g_path, "cColonyDemo.log"); return; }
+  if (slash < 0) { std::strcpy(g_path, "cTitanSmokeTest.log"); return; }
   exe[slash] = 0;
 
   const int len = static_cast<int>(std::strlen(exe));
@@ -61,7 +61,7 @@ inline void resolve_path() {
   char dir[600];
   std::snprintf(dir, sizeof(dir), inOpu ? "%s\\logs" : "%s\\OPU\\logs", exe);
   ensure_dirs(dir);
-  std::snprintf(g_path, sizeof(g_path), "%s\\cColonyDemo.log", dir);
+  std::snprintf(g_path, sizeof(g_path), "%s\\cTitanSmokeTest.log", dir);
 }
 
 inline void write_raw(const char* s, int len) {

@@ -1,15 +1,16 @@
-// mission.cpp - TitanAPI demo mission, built on the Layer 2 FACADE (op2::Game / op2::Player / op2::Unit).
+// mission.cpp - the TitanAPI in-game SMOKE TEST, built on the Layer 2 FACADE (op2::Game / op2::Player / op2::Unit).
 //
-// Same colony as the Layer-1 sample, but expressed through the ergonomic facade: Result-returning setup,
-// value-handle Player/Unit, and in-game (visible) coordinates. The Layer-1-only version (raw op2::abi) is
-// frozen at ../../samples/Layer1 for comparison.
+// A two-player colony that exercises the ergonomic facade end to end (Result-returning setup, value-handle
+// Player/Unit, in-game visible coordinates) and runs an in-mission self-test logging PASSED / FAILED. This is
+// the mission used to validate every build of the library. The Layer-1-only version (raw op2::abi) is frozen
+// at ../../samples/Layer1 for comparison.
 //
 // Status: builds on the facade; the underlying engine calls are the same ones verified in-game in the
 // Layer-1 sample (CreateUnit @0x478780, PlayerImpl writes, GoHuman @0x4906C0, SetTechLevel @0x473030).
 
 #include "op2.hpp"            // the TitanAPI Layer 2 facade: Result / Error / Location / Unit / Player / Game / MapID
 #include "op2_mission.hpp"    // the mission-DLL contract (ModDesc / ModDescEx / SaveRegion / MissionType)
-#include "op2_log.hpp"        // append-only debug log -> <OP2>\OPU\logs\cLayer1.log
+#include "op2_log.hpp"        // append-only debug log -> <OP2>\OPU\logs\cTitanSmokeTest.log
 
 using namespace op2::mission;
 using op2::MapID;
@@ -18,7 +19,7 @@ using op2::MapID;
 // Mission metadata - the exact exports Outpost 2 / op2ext read to list and configure the mission.
 // MapName / TechtreeName must exist in your install ("on6_01.map" + "MULTITEK.TXT" is the stock Colony combo).
 // =====================================================================================================================
-extern "C" __declspec(dllexport) char      LevelDesc[]    = "TitanAPI Colony Demo";
+extern "C" __declspec(dllexport) char      LevelDesc[]    = "TitanAPI Smoke Test";
 extern "C" __declspec(dllexport) char      MapName[]      = "cm01.map";
 extern "C" __declspec(dllexport) char      TechtreeName[] = "MULTITEK.TXT";
 extern "C" __declspec(dllexport) ModDesc   DescBlock      = { MissionType::Colony, /*numPlayers*/ 2, /*maxTechLevel*/ 12, /*unitMission*/ 0 };
@@ -27,7 +28,7 @@ extern "C" __declspec(dllexport) ModDescEx DescBlockEx    = { /*numMultiplayerAI
 /// Log a Result<void> setup step (and any error message). Demonstrates the facade's error-as-value API.
 static void step(const op2::Result<void>& r, const char* what) {
   if (r) op2::log::linef("  %s: ok", what);
-  else   op2::log::linef("  ! %s FAILED: %.*s", what, int(r.error().what.size()), r.error().what.data());
+  else   op2::log::linef("  ! %s FAILED: %s", what, r.error().what);
 }
 
 // Units we keep around to demonstrate the order API from the game loop (see AIProc): one per player, so we
@@ -70,7 +71,7 @@ static void chk(bool cond, const char* name) {
 /// Record a Result<void> check (logs the error text on failure).
 static void chkR(const op2::Result<void>& r, const char* name) {
   if (r) { ++g_pass; op2::log::linef("  [PASS] %s", name); }
-  else   { ++g_fail; op2::log::linef("  [FAIL] %s: %.*s", name, int(r.error().what.size()), r.error().what.data()); }
+  else   { ++g_fail; op2::log::linef("  [FAIL] %s: %s", name, r.error().what); }
 }
 
 /// Record an EXPECTED-FAILURE check: PASS when `r` is an error of exactly `want` (verifies the error-as-value
@@ -107,15 +108,15 @@ static void run() {
   chk((wb & 0x7FFFu) == unsigned(86 * 32 + 16) && ((wb >> 15) & 0x3FFFu) == unsigned(83 * 32 + 16),
                                                                     "Location::waypointBits");
 
-  // ---- Player: faction toggles (restored to Plymouth/Human) + setters ----
-  chkR(p0.goEden(),                    "Player::goEden");
-  chkR(p0.goPlymouth(),                "Player::goPlymouth (restore)");
-  chkR(p0.goAI(),                      "Player::goAI");
-  chkR(p0.goHuman(),                   "Player::goHuman (restore)");
-  chkR(p0.setPopulation(20, 10, 10),   "Player::setPopulation");
-  chkR(p0.setFood(5000, 10000),        "Player::setFood");
-  chkR(p0.setCommonOre(5000, 10000),   "Player::setCommonOre");
-  chkR(p0.setTechLevel(12),            "Player::setTechLevel");
+  // ---- Player: faction toggles + setters (now fluent/chainable; each verified by reading the value back) ----
+  p0.goEden();                       chk(p0.isEden(),     "Player::goEden");
+  p0.goPlymouth();                   chk(p0.isPlymouth(), "Player::goPlymouth (restore)");
+  p0.goAI();                         chk(p0.isAI(),       "Player::goAI");
+  p0.goHuman();                      chk(p0.isHuman(),    "Player::goHuman (restore)");
+  p0.setPopulation(20, 10, 10);      chk(p0.workers() == 20 && p0.scientists() == 10 && p0.kids() == 10, "Player::setPopulation");
+  p0.setFood(5000, 10000);           chk(p0.food() == 5000,      "Player::setFood");
+  p0.setCommonOre(5000, 10000);      chk(p0.commonOre() == 5000, "Player::setCommonOre");
+  p0.setTechLevel(12); p0.markResearchComplete(2101); chk(p0.hasTechnology(2101), "Player::setTechLevel + hasTechnology");
 
   // ---- Game: world creators ----
   { auto beacon = op2::Game::createMine({ 60, 100 });
@@ -193,7 +194,7 @@ static void run() {
   // ---- negative / error-path tests: the facade must return clean Result errors, never crash ----
   chkErr(op2::Unit{}.move({ 1, 1 }),                              op2::Status::NullHandle,      "move() on null Unit");
   chkErr(lynx.attack(op2::Unit{}),                                op2::Status::InvalidTarget,   "attack(null target)");
-  chkErr(op2::Game::player(99).goHuman(),                         op2::Status::InvalidPlayer,   "goHuman() bad player");
+  op2::Game::player(99).goHuman();  chk(!op2::Game::player(99).isHuman(), "goHuman() on bad player is a safe no-op");
   chkErr(op2::Game::createUnit(op2::MapID::Lynx, { -1, -1 }, p0), op2::Status::InvalidLocation, "createUnit() off-map");
   chkErr(op2::Game::createMine({ -1, -1 }),                       op2::Status::InvalidLocation, "createMine() off-map");
   chkErr(convecNK.build({ 62, 90 }),                             op2::Status::WrongType,       "build() with no kit");
@@ -230,14 +231,11 @@ extern "C" __declspec(dllexport) int InitProc() {
   op2::Game::addMessage("TitanAPI");
   step(op2::Game::forceMoraleGood(-1), "forceMoraleGood(-1) [steady morale]");
 
-  // ---- player setup ----
+  // ---- player setup (fluent: setup is infallible, so it chains) ----
   op2::Player p0 = op2::Game::player(0);
-  step(p0.goPlymouth(),                      "goPlymouth");
-  step(p0.goHuman(),                         "goHuman");
-  step(p0.setPopulation(20, 10, 10),         "setPopulation(20w/10s/10k)");
-  step(p0.setFood(5000, /*cap*/ 10000),      "setFood(5000)");
-  step(p0.setCommonOre(5000, /*cap*/ 10000), "setCommonOre(5000)");
-  step(p0.setTechLevel(12),                  "setTechLevel(12)");
+  p0.goPlymouth().goHuman().setPopulation(20, 10, 10).setFood(5000, /*cap*/ 10000)
+    .setCommonOre(5000, /*cap*/ 10000).setTechLevel(12);
+  op2::log::line("  player 0 set up (Plymouth / Human / 40 colonists / tech 12)");
 
   // ---- units (in-game / visible coordinates) ----
   auto place = [&](MapID type, int x, int y, MapID weapon = MapID::None) {
@@ -316,12 +314,9 @@ extern "C" __declspec(dllexport) int InitProc() {
   // ---- player 1: a computer-controlled (AI) Eden outpost ----
   op2::Player p1 = op2::Game::player(1);
   op2::log::line("  --- player 1 (AI Eden) ---");
-  step(p1.goEden(),                          "p1 goEden");
-  step(p1.goAI(),                            "p1 goAI");
-  step(p1.setPopulation(20, 10, 10),         "p1 setPopulation");
-  step(p1.setFood(5000, 10000),              "p1 setFood");
-  step(p1.setCommonOre(5000, 10000),         "p1 setCommonOre");
-  step(p1.setTechLevel(12),                  "p1 setTechLevel(12)");
+  p1.goEden().goAI().setPopulation(20, 10, 10).setFood(5000, 10000)
+    .setCommonOre(5000, 10000).setTechLevel(12);
+  op2::log::line("  player 1 set up (Eden / AI / tech 12)");
 
   auto place1 = [&](MapID type, int x, int y, MapID weapon = MapID::None) {
     const op2::Result<op2::Unit> u = op2::Game::createUnit(type, { x, y }, p1, weapon);
@@ -362,12 +357,12 @@ extern "C" __declspec(dllexport) void AIProc() {
     const op2::Result<void> m0 = g_scout.move({ 55, 84 });   // player 0
     if (m0) op2::log::linef("  g_scout.move(55,84): ok (id=%d)", g_scout.id());
     else    op2::log::linef("  ! g_scout.move FAILED: %.*s",
-                            int(m0.error().what.size()), m0.error().what.data());
+                            m0.error().what);
 
     const op2::Result<void> m1 = g_aiLynx.move({ 65, 74 });  // player 1 (AI) - within its relocated base
     if (m1) op2::log::linef("  g_aiLynx.move(65,74): ok (id=%d)", g_aiLynx.id());
     else    op2::log::linef("  ! g_aiLynx.move FAILED: %.*s",
-                            int(m1.error().what.size()), m1.error().what.data());
+                            m1.error().what);
 
     // EMP-capture: the player-0 EMP Lynx attacks (EMPs) the adjacent enemy laser Lynx at 73,88.
     { const op2::Result<void> e = g_empLynx.attack(g_enemyLynx);
@@ -389,13 +384,13 @@ extern "C" __declspec(dllexport) void AIProc() {
     if (built) op2::log::linef("  g_buildConvec.build(56,81): ok (id=%d, kit-cargo=%d)",
                                g_buildConvec.id(), g_buildConvec.cargo());
     else       op2::log::linef("  ! g_buildConvec.build FAILED: %.*s",
-                               int(built.error().what.size()), built.error().what.data());
+                               built.error().what);
 
     // Mining route: both trucks haul ore mine <-> smelter (CargoRoute, built correctly).
     auto route = [&](op2::Unit& t, const char* name) {
       const op2::Result<void> r = t.mine(g_mine, g_smelter);
       if (r) op2::log::linef("  %s.mine(mine=%d, smelter=%d): ok", name, g_mine.id(), g_smelter.id());
-      else   op2::log::linef("  ! %s.mine FAILED: %.*s", name, int(r.error().what.size()), r.error().what.data());
+      else   op2::log::linef("  ! %s.mine FAILED: %s", name, r.error().what);
     };
     route(g_truck1, "truck1");
     route(g_truck2, "truck2");
