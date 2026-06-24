@@ -18,8 +18,9 @@ namespace op2 {
 struct BeaconSpec   { Location at; abi::MineType ore = abi::MineType::CommonOre; abi::OreYield yield = abi::OreYield::Bar2; };
 /// A structure to place. `cargo` preloads a kit/weapon where the type supports it (e.g. a Guard Post's weapon).
 struct BuildingSpec { Location at; MapID type; MapID cargo = MapID::None; };
-/// A vehicle to place, optionally armed (`weaponCargo`) and facing `rotation` (0-7).
-struct VehicleSpec  { Location at; MapID type; MapID weaponCargo = MapID::None; int rotation = 0; };
+/// A vehicle to place, optionally armed (`weaponCargo`) and `facing` a direction.
+struct VehicleSpec  { Location at; MapID type; MapID weaponCargo = MapID::None;
+                      UnitDirection facing = UnitDirection::East; };
 /// A straight (or L-shaped) tube/wall run between two tiles, inclusive.
 struct LineSpec     { Location from, to; };
 
@@ -49,7 +50,7 @@ inline BaseResult createBase(Player owner, const BaseLayout& layout, Location of
   for (const BuildingSpec& b : layout.buildings)
     if (Game::createUnit(b.type, shift(b.at), owner, b.cargo)) ++r.buildings;
   for (const VehicleSpec& v : layout.vehicles)
-    if (Game::createUnit(v.type, shift(v.at), owner, v.weaponCargo, v.rotation)) ++r.vehicles;
+    if (Game::createUnit(v.type, shift(v.at), owner, v.weaponCargo, v.facing)) ++r.vehicles;
   for (const LineSpec& t : layout.tubes) { Game::createTubeLine(shift(t.from), shift(t.to)); ++r.tubeLines; }
   for (const LineSpec& w : layout.walls) { Game::createWallLine(MapID::Wall, shift(w.from), shift(w.to)); ++r.wallLines; }
   return r;

@@ -13,8 +13,9 @@
 
 namespace op2 {
 
-using MapID        = abi::MapID;          ///< engine unit / building / weapon ids (op2::MapID::CommandCenter, ...)
-using MoraleLevels = abi::MoraleLevels;   ///< Excellent / Good / Fair / Poor / Terrible
+using MapID         = abi::MapID;          ///< engine unit / building / weapon ids (op2::MapID::CommandCenter, ...)
+using MoraleLevels  = abi::MoraleLevels;   ///< Excellent / Good / Fair / Poor / Terrible
+using UnitDirection = abi::UnitDirection;  ///< unit facing: East=0, SouthEast, South, SouthWest, West, NorthWest, North, NorthEast
 
 /// Engine map location - `{int x, int y}`, passed BY VALUE to engine functions that take a `Location`. It is
 /// 8 bytes, so under __fastcall it is passed on the stack (the compiler matches the engine's ABI). Build it
@@ -91,8 +92,8 @@ struct Game {
   /// Wraps Game::CreateUnit @0x478780 (__fastcall) - verified in-game.
   /// @note If `type` is a weapon platform (combat vehicle / Guard Post) and no `weaponCargo` is given, it is
   ///       auto-armed with a Laser - a weaponless combat vehicle crashes OP2, so this is never the author's fault.
-  static Result<Unit> createUnit(MapID type, Location at, Player owner,
-                                 MapID weaponCargo = MapID::None, int rotation = 0) {
+  static Result<Unit> createUnit(MapID type, Location at, Player owner, MapID weaponCargo = MapID::None,
+                                 UnitDirection facing = UnitDirection::East) {
     if (!owner.valid()) return fail(err::InvalidPlayer);
     if (!at.onMap())    return fail(err::InvalidLocation);
 
@@ -101,7 +102,7 @@ struct Game {
 
     const EngineLoc loc{ at.engineX(), at.engineY() };   // engine Location is {int x, int y}, passed by value
     int id = 0;  // CreateUnit fills this (the Unit& out-param)
-    abi::callFast<0x478780, int>(&id, int(type), loc, owner.index(), int(weaponCargo), rotation);
+    abi::callFast<0x478780, int>(&id, int(type), loc, owner.index(), int(weaponCargo), int(facing));
     if (id < 0) return fail(err::EngineRejected);
     return Unit{ id, owner.index() };   // carry the owner so the unit can dispatch orders
   }
@@ -446,6 +447,18 @@ struct GameMap {
   static bool getMicrobe(Location where)          { return (tileData(where) >> 30) & 1u; }
   /// Is a wall or building on `where`? (TileData.wallOrBuilding - bit 31.)
   static bool getWallOrBuilding(Location where)   { return (tileData(where) >> 31) & 1u; }
+
+  /// The unit occupying `where` - the engine records a MapUnit index per tile (TileData.unitIndex, bits 16-26).
+  /// This is the O(1), FOOTPRINT-AWARE way to answer "what is built on this tile": every tile a building covers
+  /// holds that building's index, so it matches anywhere on the footprint (unlike `Unit::location()`, which is
+  /// only the building's anchor tile). Maintained for STRUCTURES (buildings / walls / tubes); returns a null Unit
+  /// when no wall or building occupies the tile. (Vehicles move and are not tracked per-tile - enumerate for
+  /// those.) Example: `GameMap::unitOnTile(at).type() == MapID::Spaceport`.
+  static Unit unitOnTile(Location where) {
+    const abi::u32 t = tileData(where);
+    if (!((t >> 31) & 1u)) return Unit{};               // bit 31: no wall/building here -> null handle
+    return Unit{ int((t >> 16) & 0x7FFu) };             // bits 16-26: the MapUnit index on this tile
+  }
 
   /// Is this single tile buildable - on-map, passable terrain, not already occupied by a wall/building, and no
   /// lava? (OP2Lua's `game.can_place`.) Reads tile flags directly; deliberately NOT the engine's

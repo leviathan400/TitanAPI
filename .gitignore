@@ -1,0 +1,23 @@
+# CMake / MSBuild build output
+build/
+**/build/
+out/
+[Dd]ebug/
+[Rr]elease/
+*.dll
+*.lib
+*.exp
+*.pdb
+*.obj
+
+# IDE / editor
+.vs/
+.vscode/
+*.user
+*.suo
+CMakeSettings.json
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store

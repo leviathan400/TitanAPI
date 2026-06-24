@@ -277,6 +277,8 @@ static void run() {
   chk(lynx.isVehicle()  && !factory.isVehicle(),    "Unit::isVehicle");
   chk(factory.isBuilding() && !lynx.isBuilding(),   "Unit::isBuilding");
   chk(!lynx.isEMPed(),                              "Unit::isEMPed (not EMP'd)");
+  // GameMap::unitOnTile reads the tile's per-cell unit index: the smelter built at {49,88} is reported there.
+  chk(op2::GameMap::unitOnTile({ 49, 88 }).id() == g_smelter.id(), "GameMap::unitOnTile");
 
   // ---- Unit: orders (PASS = built + accepted) ----
   chkR(lynx.move({ 59, 90 }),             "Unit::move");
@@ -418,14 +420,14 @@ extern "C" int __stdcall DllMain(void* /*hinst*/, unsigned long reason, void* /*
     // Install crash diagnostics first, and route the game tick into every log line, before anything can fault.
     op2::crash::installHandler();
     op2::log::setTickSource([] { return op2::Game::tick(); });
-    op2::log::line("==================== TitanAPI mission DLL_PROCESS_ATTACH ====================");
+    op2::log::linef("==================== TitanAPI mission DLL_PROCESS_ATTACH (pid=%lu) ====================", op2::log::pid());
     op2::log::timestamp();
 #ifdef TITANAPI_VERSION
     op2::log::linef("TitanAPI v%s (Layer 2 facade)", TITANAPI_VERSION);
 #endif
     op2::log::linef("log file: %s", op2::log::path());
   } else if (reason == 0) {  // DLL_PROCESS_DETACH
-    op2::log::line("TitanAPI mission DLL_PROCESS_DETACH");
+    op2::log::linef("TitanAPI mission DLL_PROCESS_DETACH (pid=%lu)", op2::log::pid());
   }
   return 1;
 }

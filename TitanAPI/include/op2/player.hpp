@@ -83,14 +83,10 @@ public:
     char* p = impl(); return p && (abi::member<0x477BF0, int>(p, techID) != 0);
   }
 
-  /// Clear this player's STARSHIP launch/evacuation flags - the `satellites` bitfield at PlayerImpl+8 (launched
-  /// modules + Skydock + rare/common/food/evac/child cargo, each a 1-bit flag). The engine does NOT zero these
-  /// when you set a player up via goEden()/goAI() during InitProc, so they read STALE - which makes the standard
-  /// starship-race victory count-triggers (an `onUnitCount` on `MapID::Skydock` / `RareMetalsCargo` / ...) fire
-  /// spuriously on load. Call this during setup of any starship/evacuation mission for a clean launch state.
-  Player& clearStarshipState() { if (char* p = impl()) *reinterpret_cast<int*>(p + 8) = 0; return *this; }
-  /// Raw value of the `satellites` launch/evac bitfield (PlayerImpl+8). For diagnostics - 0 means no launches.
-  [[nodiscard]] int starshipFlags() const { char* p = impl(); return p ? *reinterpret_cast<int*>(p + 8) : -1; }
+  // NOTE: never write PlayerImpl+8 (the satellite/launch bitfield) yourself. The engine owns and recomputes it;
+  // writing it makes the engine rebuild it from a stale source and the starship victory count-triggers then fire
+  // spuriously. For a clean starship race just let the engine keep it at 0 until the player actually launches.
+  // To READ a launched-satellite count use satelliteCount() below (PlayerImpl::GetSatelliteCount @0x4908E0).
 
   // ---- alliances ----
   [[nodiscard]] bool isAlly(int playerNum) const {                          ///< fully allied both ways? @0x490D30

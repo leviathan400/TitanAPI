@@ -78,13 +78,15 @@ inline void write_raw(const char* s, int len) {
 /// Absolute path the log resolves to (also written into the log on the first line).
 inline const char* path() { if (!detail::g_ready) detail::resolve_path(); return detail::g_path; }
 
-/// Append one line (with a tick + pid prefix), flushed immediately.
+/// The OS process id - logged once on DLL attach/detach, not on every line.
+inline unsigned long pid() { return GetCurrentProcessId(); }
+
+/// Append one line (with a tick prefix), flushed immediately.
 inline void line(const char* msg) {
   if (!detail::g_ready) detail::resolve_path();
   char buf[1024];
-  int n = std::snprintf(buf, sizeof(buf), "[t=%lu pid=%lu] %s\r\n",
-                        static_cast<unsigned long>(GetTickCount()),
-                        static_cast<unsigned long>(GetCurrentProcessId()), msg);
+  int n = std::snprintf(buf, sizeof(buf), "[t=%lu] %s\r\n",
+                        static_cast<unsigned long>(GetTickCount()), msg);
   if (n < 0) return;
   if (n > static_cast<int>(sizeof(buf))) n = static_cast<int>(sizeof(buf));
   detail::write_raw(buf, n);

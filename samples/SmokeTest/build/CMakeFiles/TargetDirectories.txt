@@ -1,3 +1,0 @@
-D:/opu/op2titanapi/samples/SmokeTest/build/CMakeFiles/cTitanSmokeTest.dir
-D:/opu/op2titanapi/samples/SmokeTest/build/CMakeFiles/ALL_BUILD.dir
-D:/opu/op2titanapi/samples/SmokeTest/build/CMakeFiles/ZERO_CHECK.dir

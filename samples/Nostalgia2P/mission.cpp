@@ -131,8 +131,8 @@ static void initProcImpl() {
 
   // The whole mining-beacon field.
   for (const Beacon& bn : kBeacons)
-    op2::Game::createMine(bn.at, bn.rare ? op2::abi::MineType::RareOre : op2::abi::MineType::CommonOre,
-                          op2::abi::OreYield(bn.yield));
+    op2::ignore(op2::Game::createMine(bn.at, bn.rare ? op2::abi::MineType::RareOre : op2::abi::MineType::CommonOre,
+                          op2::abi::OreYield(bn.yield)));
 
   // Randomly assign the two players to the two diagonal corners (the original randomized starts too).
   const bool swap = (op2::Game::getRand(2) != 0);
@@ -152,9 +152,9 @@ static void initProcImpl() {
   }
 
   // Misc multiplayer setup (matches the original): steady morale, full daylight, a dim starting light level.
-  op2::Game::forceMoraleGood();
-  op2::Game::setDaylightEverywhere(true);
-  op2::Game::setDaylightMoves(false);
+  op2::ignore(op2::Game::forceMoraleGood());
+  op2::ignore(op2::Game::setDaylightEverywhere(true));
+  op2::ignore(op2::Game::setDaylightMoves(false));
   op2::GameMap::setInitialLightLevel(-32);
 
   op2::Game::addMessage("Last One Standing - destroy the enemy Command Center. Good luck, have fun!");

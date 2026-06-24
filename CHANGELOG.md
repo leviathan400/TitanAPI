@@ -3,6 +3,26 @@
 All notable changes to **Outpost 2 TitanAPI** are documented here. This is the public changelog; it begins at
 the first public release.
 
+## 0.6.3 - 2026-06-24 - Typed unit facing + starship-victory sample
+
+### Added
+- **`Game::createUnit` and `BaseLayout` vehicles now take a `UnitDirection`** (`op2::UnitDirection`: `East=0` ..
+  `NorthEast=7`) instead of a raw `int` rotation - type-safe facing:
+  `createUnit(MapID::Lynx, at, you, MapID::Laser, UnitDirection::North)`.
+- **`GameMap::unitOnTile(location)`** - returns the structure occupying a tile, read from the engine's per-tile
+  MapUnit index (`TileData.unitIndex`). O(1) and footprint-aware (every tile a building covers reports it), so it
+  is the right way to answer "what is built on this tile": `GameMap::unitOnTile(at).type() == MapID::Spaceport`.
+  Returns a null Unit when no wall/building occupies the tile.
+- **New sample `samples/Starship`** (`cStarship.dll`) - the Eden/Plymouth space-race victory system: a Spaceport
+  colony whose objectives are to build and launch every starship component. Documents the working recipe (a
+  per-component count trigger `oneShot=true` wrapped in a victory condition `oneShot=false`).
+
+### Removed
+- **`Player::clearStarshipState` / `Player::starshipFlags`** - these wrote/read `PlayerImpl+8` directly. The
+  engine owns and recomputes that satellite/launch bitfield every cycle from the actual Spaceport, so writing it
+  by hand makes the engine rebuild from a stale source and the starship objectives fire spuriously. Set the colony
+  up the ordinary way (including `setTechLevel`, which initializes the space-program state) and leave `+8` alone.
+
 ## 0.6.2 - 2026-06-22 - Engine-fact corrections
 
 Accuracy fixes to the `op2::abi` layer (the decoded view of the game binary). No public API surface change.

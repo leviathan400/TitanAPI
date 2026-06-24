@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstdarg>
 #include <cstring>
+#include <ctime>
 
 // Log file base name (no extension). Override per-mission via the build (e.g. -DOP2LOG_NAME="cColdFrontTitan").
 // The main log is <name>.log; the AI-action channel (op2::log::ai) is <name>-AI.log.
@@ -86,8 +87,8 @@ inline void write_raw(const char* path, const char* s, int len) {
   CloseHandle(h);
 }
 
-// Format the standard "[tick=..] msg" line into `buf` and write it to `path`. (The pid is logged once on DLL
-// attach/detach, not on every line - see log::pid().)
+// Format the standard "[tick=..] msg" line into `buf` and write it to `path`. (The pid is logged once, on DLL
+// load, via log::stamp - not on every line.)
 inline void write_line(const char* path, const char* msg) {
   if (!g_ready) resolve_path();
   const int gameTick = g_tickSource ? g_tickSource() : -1;
@@ -107,14 +108,11 @@ inline const char* path() { if (!detail::g_ready) detail::resolve_path(); return
 /// `[]{ return op2::Game::tick(); }`. Safe to call at DLL attach (the source is only invoked when logging).
 inline void setTickSource(int (*fn)()) { detail::g_tickSource = fn; }
 
-/// The OS process id - log it once on DLL attach/detach, not on every line.
-inline unsigned long pid() { return GetCurrentProcessId(); }
-
-/// Append one line to the MAIN log (prefixed with the game tick), flushed immediately.
+/// Append one line to the MAIN log (prefixed with the game tick + pid), flushed immediately.
 inline void line(const char* msg) { detail::write_line(detail::g_path, msg); }
 
 /// Append one line to the AI-action channel (<name>-AI.log) - a separate file for monitoring/debugging the
-/// scripted computer player's decisions, like OP2Lua's AI log. Same tick prefix, flushed per line.
+/// scripted computer player's decisions, like OP2Lua's AI log. Same tick+pid prefix, flushed per line.
 inline void ai(const char* msg) { detail::write_line(detail::g_aiPath, msg); }
 
 /// Log a human-readable local date/time line (call once at startup, so each run is timestamped).
@@ -143,6 +141,18 @@ inline void ailinef(const char* fmt, ...) {
   std::vsnprintf(msg, sizeof(msg), fmt, ap);
   va_end(ap);
   ai(msg);
+}
+
+// ---- wall-clock timestamps (mission load / unload) -----------------------------------------------------------
+/// Log a wall-clock timestamp with a label, e.g. log::stamp("mission loaded") ->
+/// "==== mission loaded @ 2026-06-22 14:30:05". Uses the CRT clock (no <windows.h> / no GetLocalTime clash).
+inline void stamp(const char* label) {
+  const std::time_t now = std::time(nullptr);
+  std::tm lt{};
+  localtime_s(&lt, &now);
+  linef("==== %s @ %04d-%02d-%02d %02d:%02d:%02d (pid=%lu)", label,
+        lt.tm_year + 1900, lt.tm_mon + 1, lt.tm_mday, lt.tm_hour, lt.tm_min, lt.tm_sec,
+        static_cast<unsigned long>(GetCurrentProcessId()));
 }
 
 } // namespace op2::log

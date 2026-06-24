@@ -7,9 +7,9 @@ straight on the running game engine, with no legacy SDK stack to wrangle. Orders
 instead of crashing the game, units and players are simple value handles, and a declarative BaseBuilder turns a
 starting colony into a few lines of data.
 
-> **Status: v0.6.2 - feature-complete and verified in-game.** Eight modules cover the full
+> **Status: v0.6.3 - feature-complete and verified in-game.** Eight modules cover the full
 > mission-scripting surface (unit orders, state, enumeration, triggers + victory, AI groups, world & map,
-> mission lifecycle, base building). Every build is validated by a 155-check in-game self-test, and four sample
+> mission lifecycle, base building). Every build is validated by a 156-check in-game self-test, and six sample
 > missions (single-player and multiplayer) ship in `samples/`.
 
 ---
@@ -92,7 +92,7 @@ See [`samples/`](samples/) for complete, in-game-verified missions, and
 | **BaseBuilder** | declarative `BaseLayout` -> `createBase(player, layout, offset)`; tube/wall line helpers; map messages |
 | **Player** | faction/human/AI, resources & population, research, alliances, difficulty, satellite counts, center-view |
 | **Crash diagnostics** | SEH-guarded exports + a process-wide unhandled-fault filter turn a crash into a logged fault address and game tick (e.g. `0xC0000005 at 0x4367DA, tick 2`) - a mission bug becomes debuggable instead of a silent lock-up |
-| **Tooling** | a 155-check in-game self-test; tick-stamped, flushed-per-line logging |
+| **Tooling** | a 156-check in-game self-test; tick-stamped, flushed-per-line logging |
 
 ---
 
@@ -122,6 +122,8 @@ op2titanapi/
     SmokeTest/     orders, mining, enumeration + an in-mission self-test (validates every build)
     ColdFront/     a single-player mission with a scripted AI, a lava eruption, and a starship victory
     Nostalgia2P/   a 2-player multiplayer (Last One Standing) mission
+    Starship/      the space-race victory system: build + launch every starship component
+    RisingFromTheAshes/  a full campaign port (provocation-gated AI, disasters, starship victory)
   docs/            GETTING-STARTED.md, FACADE-DESIGN.md (the design), ABI-MECHANISM.md (how the layer reads the game)
 ```
 

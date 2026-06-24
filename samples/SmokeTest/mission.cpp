@@ -151,6 +151,8 @@ static void run() {
   chk(lynx.isVehicle()  && !factory.isVehicle(),    "Unit::isVehicle");
   chk(factory.isBuilding() && !lynx.isBuilding(),   "Unit::isBuilding");
   chk(!lynx.isEMPed(),                              "Unit::isEMPed (not EMP'd)");
+  // GameMap::unitOnTile reads the tile's per-cell unit index: the smelter built at {49,88} is reported there.
+  chk(op2::GameMap::unitOnTile({ 49, 88 }).id() == g_smelter.id(), "GameMap::unitOnTile");
 
   // ---- Unit: orders (PASS = built + accepted) ----
   chkR(lynx.move({ 59, 90 }),             "Unit::move");
@@ -201,6 +203,10 @@ static void run() {
   chkErr(truck.mine(op2::Unit{}, smelter),                       op2::Status::InvalidTarget,   "mine() invalid mine target");
 
   op2::log::linef("==================== SELF-TEST: %d PASSED, %d FAILED ====================", g_pass, g_fail);
+  // Also surface the result in-game (the log isn't visible while playing). Shows in the message pane.
+  char banner[64];
+  std::snprintf(banner, sizeof(banner), "Smoke test: %d passed, %d failed", g_pass, g_fail);
+  op2::Game::addMessage(banner);
 }
 
 } // namespace selftest
@@ -211,13 +217,13 @@ static void run() {
 
 extern "C" int __stdcall DllMain(void* /*hinst*/, unsigned long reason, void* /*reserved*/) {
   if (reason == 1) {  // DLL_PROCESS_ATTACH
-    op2::log::line("==================== TitanAPI mission DLL_PROCESS_ATTACH ====================");
+    op2::log::linef("==================== TitanAPI mission DLL_PROCESS_ATTACH (pid=%lu) ====================", op2::log::pid());
 #ifdef TITANAPI_VERSION
     op2::log::linef("TitanAPI v%s (Layer 2 facade)", TITANAPI_VERSION);
 #endif
     op2::log::linef("log file: %s", op2::log::path());
   } else if (reason == 0) {  // DLL_PROCESS_DETACH
-    op2::log::line("TitanAPI mission DLL_PROCESS_DETACH");
+    op2::log::linef("TitanAPI mission DLL_PROCESS_DETACH (pid=%lu)", op2::log::pid());
   }
   return 1;
 }
