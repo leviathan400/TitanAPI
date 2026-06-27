@@ -7,9 +7,9 @@ straight on the running game engine, with no legacy SDK stack to wrangle. Orders
 instead of crashing the game, units and players are simple value handles, and a declarative BaseBuilder turns a
 starting colony into a few lines of data.
 
-> **Status: v0.6.3 - feature-complete and verified in-game.** Eight modules cover the full
+> **Status: v0.6.4 - feature-complete and verified in-game.** Eight modules cover the full
 > mission-scripting surface (unit orders, state, enumeration, triggers + victory, AI groups, world & map,
-> mission lifecycle, base building). Every build is validated by a 156-check in-game self-test, and six sample
+> mission lifecycle, base building). Every build is validated by a 156-check in-game self-test, and multiple sample
 > missions (single-player and multiplayer) ship in `samples/`.
 
 ---
@@ -117,13 +117,7 @@ Full walkthrough - prerequisites, your first mission, building, deploying, and r
 op2titanapi/
   README.md / CHANGELOG.md   this overview and the changelog
   TitanAPI/        the library: op2:: facade headers (include/op2/) + the test mission (src/)
-  samples/         complete, in-game-verified missions you can read and adapt
-    Layer1/        a minimal first mission
-    SmokeTest/     orders, mining, enumeration + an in-mission self-test (validates every build)
-    ColdFront/     a single-player mission with a scripted AI, a lava eruption, and a starship victory
-    Nostalgia2P/   a 2-player multiplayer (Last One Standing) mission
-    Starship/      the space-race victory system: build + launch every starship component
-    RisingFromTheAshes/  a full campaign port (provocation-gated AI, disasters, starship victory)
+  samples/         complete, in-game-verified missions you can read and adapt (see samples/README.md)
   docs/            GETTING-STARTED.md, FACADE-DESIGN.md (the design), ABI-MECHANISM.md (how the layer reads the game)
 ```
 

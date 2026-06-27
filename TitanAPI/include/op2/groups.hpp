@@ -164,10 +164,19 @@ public:
   /// [BuildingGroup] The base-area rect the group builds within. (SetRect @0x47A2E0.)
   void setBuildRect(Location tl, Location br) { int id = id_; int r[4]{ tl.engineX(), tl.engineY(), br.engineX(), br.engineY() }; abi::member<0x47A2E0, void>(&id, &r[0]); }
   /// [BuildingGroup] Record a structure for the group to (re)build at `where`. (RecordBuilding @0x47A3E0.)
+  /// For an ore mine use `recordMine` instead - mines need the CommonOreMine quirk handled (see below).
   void recordBuilding(Location where, MapID type, MapID cargoOrWeapon = MapID::None) {
     int id = id_; int loc[2]{ where.engineX(), where.engineY() };
     abi::member<0x47A3E0, void>(&id, &loc[0], int(type), int(cargoOrWeapon));   // void(Location&, MapID, MapID)
   }
+  /// [BuildingGroup] Record a mine for the group to build on the mining beacon at `beacon`. Use this for BOTH
+  /// common AND rare ore mines: the recorded type is ALWAYS `CommonOreMine` and the BEACON sitting under `beacon`
+  /// decides whether the built mine ends up common or rare. Recording `RareOreMine` directly does NOT work - a
+  /// long-standing OP2 engine quirk that the original missions flag with a literal "BUG: set mine type to common
+  /// even for a rare ore mine" comment (RisingFromTheAshes/SetupAIBase.cpp). A beacon must already exist at
+  /// `beacon` (Game::createMine, a BeaconSpec in a Base, or a map deposit). Pair with a MiningGroup (setupMining)
+  /// for trucks to actually haul the ore. (Thin wrapper over recordBuilding -> RecordBuilding @0x47A3E0.)
+  void recordMine(Location beacon) { recordBuilding(beacon, MapID::CommonOreMine); }
   /// [BuildingGroup] Have this group's factories reinforce `target` FightGroup. `priority` 1..0xFFFF (high =
   /// more urgent). NOTE: priority 0 HANGS OP2, so we clamp to >= 1. (RecordVehReinforceGroup @0x47A440.)
   void recordVehReinforceGroup(Group target, int priority) {
@@ -176,6 +185,8 @@ public:
   }
   /// [BuildingGroup] Stop reinforcing `target`. (UnRecordVehGroup @0x47A460.)
   void unRecordVehGroup(Group target) { int id = id_; int t = target.id_; abi::member<0x47A460, void>(&id, &t); }
+
+  [[nodiscard]] int idForDebug() const { return id_; }   // TEMP: inspect the raw ScGroup index
 
 private:
   int id_ = kNilIndex;

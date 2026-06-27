@@ -7,7 +7,7 @@
 # Output: build/Release/cTitanAPI.dll
 
 cmake_minimum_required(VERSION 3.21)
-project(TitanAPI VERSION 0.6.3 LANGUAGES CXX RC DESCRIPTION "Outpost 2 TitanAPI test mission DLL")
+project(TitanAPI VERSION 0.6.4 LANGUAGES CXX RC DESCRIPTION "Outpost 2 TitanAPI test mission DLL")
 
 if(NOT MSVC)
   message(FATAL_ERROR "Outpost 2 is a 32-bit MSVC target - build with MSVC (cl.exe).")

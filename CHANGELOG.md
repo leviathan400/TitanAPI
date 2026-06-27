@@ -3,6 +3,20 @@
 All notable changes to **Outpost 2 TitanAPI** are documented here. This is the public changelog; it begins at
 the first public release.
 
+## 0.6.4 - 2026-06-26 - Build a mine through a BuildingGroup
+
+### Added
+- **`Group::recordMine(Location beacon)`** - a documented, mine-specific way to have a BuildingGroup build an ore
+  mine. It records `CommonOreMine` and lets the beacon under the location decide common vs rare (recording
+  `RareOreMine` directly does not work - a long-standing OP2 engine quirk), and its docs cover the beacon +
+  MiningGroup pairing. `recordBuilding` now points to it for mines.
+- **New sample `samples/Mining`** (`cMining.dll`) - a Plymouth AI builds two ore mines side by side, showing both
+  group types in their roles (human + AI): mine 1 is deployed by a Robo-Miner and hauled by a `MiningGroup`
+  (`setupMining` + Cargo Trucks taken from the idle rect); mine 2 is built by a `BuildingGroup` via `recordMine`
+  (the "build a mine through a building group" pattern - it needs a Robo-Miner, as a ConVec can't build a mine).
+  Documents the gotchas - trucks must sit in the idle rect to bind, and a MiningGroup parks when the ore store is
+  full (so the demo simulates colony consumption to keep demand up). Verified in-game to mark 200.
+
 ## 0.6.3 - 2026-06-24 - Typed unit facing + starship-victory sample
 
 ### Added
