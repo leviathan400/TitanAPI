@@ -186,8 +186,6 @@ public:
   /// [BuildingGroup] Stop reinforcing `target`. (UnRecordVehGroup @0x47A460.)
   void unRecordVehGroup(Group target) { int id = id_; int t = target.id_; abi::member<0x47A460, void>(&id, &t); }
 
-  [[nodiscard]] int idForDebug() const { return id_; }   // TEMP: inspect the raw ScGroup index
-
 private:
   int id_ = kNilIndex;
 };

@@ -7,7 +7,7 @@ straight on the running game engine, with no legacy SDK stack to wrangle. Orders
 instead of crashing the game, units and players are simple value handles, and a declarative BaseBuilder turns a
 starting colony into a few lines of data.
 
-> **Status: v0.6.4 - feature-complete and verified in-game.** Eight modules cover the full
+> **Status: v0.6.5 - feature-complete and verified in-game.** Eight modules cover the full
 > mission-scripting surface (unit orders, state, enumeration, triggers + victory, AI groups, world & map,
 > mission lifecycle, base building). Every build is validated by a 156-check in-game self-test, and multiple sample
 > missions (single-player and multiplayer) ship in `samples/`.
@@ -87,6 +87,7 @@ See [`samples/`](samples/) for complete, in-game-verified missions, and
 | **Enumeration** | `Game::units()` / `unitsOf(p)` / `unitsOfType(t)` / `unitsInRect(...)` as composable `std::ranges` views |
 | **Triggers & victory** | time/count/resource/research triggers with C++ lambda callbacks; `victoryWhen` / `defeatWhen` / `win` / `lose` |
 | **AI scripting** | `FightGroup` / `MiningGroup` / `BuildingGroup` strategies, `UnitBlock` batch creation, `Pinwheel` attack waves |
+| **High-level helpers** | `createMiningOperation(...)` - a complete self-healing AI ore operation (mine + smelter + hauling MiningGroup + trucks) in one call; `tickMiningOperations()` rebuilds what an attacker destroys |
 | **World & map** | disasters (meteor/quake/eruption/storm/vortex), lava control, terrain & cell queries, mining beacons, markers, sounds, messages |
 | **Mission lifecycle** | typed entry contract, typed save/load (`GetSaveRegions` + a `Stream` wrapper), `OnChat` / `OnSaveGame` / `OnEndMission` / ... callbacks |
 | **BaseBuilder** | declarative `BaseLayout` -> `createBase(player, layout, offset)`; tube/wall line helpers; map messages |

@@ -260,13 +260,13 @@ public:
     }
   }
 
-  /// [Factory / structure] Produce a unit, optionally with a weapon or cargo. scGroup defaults to none (-1).
+  /// [Factory / structure] Produce a unit, optionally with a weapon or cargo.
   Result<void> produce(abi::MapID item, abi::MapID weaponOrCargo = abi::MapID::None) {
     abi::CmdBuilder b{ abi::CommandType::Produce };
     b.singleUnit(u16(id_))
      .field<u16>(u16(int(item)))
      .field<u16>(u16(int(weaponOrCargo)))
-     .field<u16>(u16(0xFFFF));                          // scGroupIndex = -1 (no group)
+     .field<u16>(u16(0xFFFF));                          // scGroupIndex (0xFFFF = no group)
     return dispatch(b);
   }
 

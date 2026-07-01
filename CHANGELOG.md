@@ -3,6 +3,27 @@
 All notable changes to **Outpost 2 TitanAPI** are documented here. This is the public changelog; it begins at
 the first public release.
 
+## 0.6.5 - 2026-07-01 - One-call self-healing AI mining operation
+
+### Added
+- **`op2::createMiningOperation(owner, smelter, mine, idleTL, idleBR, numTrucks[, autoHeal])`** (new header
+  `op2/mining.hpp`) - a complete, self-managing AI ore operation in a single call. It ensures a surveyed ore
+  beacon and a Common Ore Mine at `mine`, a Common Ore Smelter at `smelter`, a `MiningGroup` hauling between them
+  in the idle rect, and `numTrucks` Cargo Trucks on the haul. With `autoHeal` on (default), a per-frame
+  **`op2::tickMiningOperations()`** call in AIProc keeps it alive: a destroyed mine or smelter is rebuilt (dozing
+  the footprint first), lost trucks are replaced, the haul is rebound, and mining resumes on its own. Rebuilds use
+  `createUnit` because the engine will not queue-build utility vehicles or complete a scripted ConVec build for an
+  AI player without the full CanBuildUnit + research precondition chain (documented in the header). Verified
+  in-game past mark 550, surviving scripted destruction of a truck and the smelter.
+
+### Changed
+- **Sample `samples/Mining` reworked to showcase `createMiningOperation`.** It now stands up the whole operation
+  with the one call and stages a scripted "raid" (a truck, then the smelter) so you can watch auto-heal rebuild
+  them and hauling resume. The previous 0.6.4 two-mine walkthrough is replaced; the `recordMine` / BuildingGroup
+  mine pattern it demonstrated is preserved as a "Related" section in the sample README. Documents the key gotcha:
+  a MiningGroup parks its trucks when the ore store is full, so the demo simulates colony consumption to keep ore
+  demand up (a real colony spends ore as fast as it arrives).
+
 ## 0.6.4 - 2026-06-26 - Build a mine through a BuildingGroup
 
 ### Added

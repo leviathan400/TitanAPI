@@ -1,51 +1,59 @@
 # AI Mining - TitanAPI sample
 
-How to script a **working ore operation for an AI player**. You (a human) watch a Plymouth AI build **two ore
-mines - one each way** - and haul from the first, all on its own (no human micro):
-- **mine 1** the Robo-Miner way (survey -> deploy), then a `MiningGroup` hauls it;
-- **mine 2** the BuildingGroup way (`recordMine`) - the *"build a mine through a building group"* pattern.
+A complete, self-managing **ore operation for an AI player in one call**. A human spectator watches a Plymouth AI
+run a full mine - and heal it when it is attacked - all on its own (no human micro), set up with a single function:
 
-Builds `cMining.dll`, a 2-player Colony game (human + AI) on the stock `cm01.map` + `MULTITEK.TXT`.
+```cpp
+op2::createMiningOperation(ai, smelterLoc, mineLoc, idleTL, idleBR, /*numTrucks*/ 3, /*autoHeal*/ true);
+```
+
+That one call places the ore mine (surveying a beacon first), the smelter, a `MiningGroup` hauling between them,
+and the Cargo Trucks. Then a single line in `AIProc` keeps it alive:
+
+```cpp
+op2::tickMiningOperations();   // rebuilds a destroyed mine/smelter, replaces lost trucks, resumes the haul
+```
+
+Builds `cMining.dll`, a 2-player Colony game (human spectator + AI) on the stock `cm01.map` + `MULTITEK.TXT`.
 
 ## What it sets up
 
-- **Player 0 (Eden, human)** - a token outpost to spectate from.
-- **Player 1 (Plymouth, AI)** - a minimal colony: **Command Center, Tokamak** (power), **Agridome** (food),
-  **Common Ore Smelter**, a **Robo-Surveyor**, two **Robo-Miners**, a **ConVec**, and three **Cargo Trucks**
-  (placed at load inside the mining idle rect; the MiningGroup takes them in once mine 1 stands).
+- **Player 0 (Eden, human)** - a token outpost to spectate from (Command Center + Tokamak + a Scout, high food /
+  tiny population so it stays stable without farms).
+- **Player 1 (Plymouth, AI)** - a colony **core** only: Command Center, Tokamak (power), Agridome (food), tube-
+  connected. The mine, smelter, MiningGroup, and trucks are **all added by the one `createMiningOperation` call** -
+  that is the point of the sample.
 
-## The flow (each step gated on the previous, via the mark scheduler)
+## The demo: auto-heal under attack
 
-1. **Survey** - the AI's Robo-Surveyor drives to deposit 1; on arrival it is revealed.
-2. **Mine 1 (Robo-Miner)** - once surveyed, the AI's Robo-Miner deploys a mine on deposit 1.
-3. **Mine 2 (BuildingGroup)** - a `BuildingGroup` handed a ConVec + a Robo-Miner + a build rect builds a mine on
-   deposit 2 via `recordMine` (a ConVec alone can't build a mine - the group needs a Robo-Miner).
-4. **MiningGroup** - once mine 1 finishes, the AI wires up the haul group:
+To show the self-healing off, the mission stages a scripted "raid" and you watch the operation recover:
 
-```cpp
-auto mg = op2::createMiningGroup(aiPlayer);
-mg.setupMining(mine, smelter, idleTL, idleBR);          // Setup FIRST (mine + smelter + an idle rect)
-for (each Cargo Truck sitting in the idle rect) mg.takeUnit(truck);   // THEN take the trucks in
-```
+1. **mark 50** - a Cargo Truck is destroyed. `tickMiningOperations()` builds a replacement and puts it back on the
+   haul.
+2. **mark 110** - the smelter is destroyed. The tick dozes the footprint, rebuilds the smelter, rebinds the
+   MiningGroup to it, and hauling resumes.
 
-The group then hauls mine -> smelter on its own.
+The log traces `mine=1 smelter=1 trucks=3 ore=...` holding steady through both raids as the operation repairs
+itself.
 
-## Two things that bite
+## Two things worth knowing
 
-- **The trucks must be INSIDE the idle rect when the group takes them in.** This sample places them there at load;
-  the campaign helper (`UnitHelper::SetupMiningGroup`) spawns them there fresh - either works. Trucks staged
-  elsewhere are not reliably picked up.
-- **A MiningGroup parks its trucks in the idle rect when the ore store is FULL** (unlike a human's `Unit::mine`
-  CargoRoute, where a truck waits at the smelter *dock*). So the colony needs ongoing ore DEMAND: this sample
-  simulates consumption (it drains the AI's ore every few marks), so the store never fills and the trucks haul
-  indefinitely - exactly what a real AI does by spending ore on construction/production. (Aside: `setCommonOre`'s
-  cap argument does **not** raise the storage cap - the engine recomputes capacity from storage buildings - so
-  adding CommonStorage only delays the fill, it does not prevent it.)
+- **A MiningGroup parks its trucks when the ore store is FULL** (unlike a human's `Unit::mine` CargoRoute, where a
+  truck waits at the smelter *dock*). So the colony needs ongoing ore **demand**: this sample simulates
+  consumption (`if (ore > 8000) setCommonOre(6000)` in `AIProc`), so the store never caps and the trucks haul
+  indefinitely - exactly what a real AI does by spending ore on construction/production. Without a consumer the
+  trucks would look "stopped" once the store fills. (`setCommonOre`'s value does not raise the storage cap - the
+  engine recomputes capacity from storage buildings - so adding CommonStorage only delays the fill.)
+- **Rebuilds use `createUnit`, not factory production.** The engine will not queue-build utility vehicles (Cargo
+  Truck / ConVec) or complete a scripted ConVec structure-build for an AI player without the full CanBuildUnit +
+  research + factory-output precondition chain the campaign AI uses. `createUnit` is the reliable path for
+  auto-heal and is functionally identical (the unit appears and joins the operation). See the header
+  `op2/mining.hpp` for the full note.
 
-## Mine 2 - building a mine through a BuildingGroup
+## Related: build a mine through a BuildingGroup (`recordMine`)
 
-Mine 2 is built the *"build a mine through a building group"* way: hand a **BuildingGroup** its builders + a build
-rect, then `recordMine`, and the group builds a `CommonOreMine` on the surveyed deposit on its own:
+`createMiningOperation` places its mine directly. If instead you want an AI's **BuildingGroup** to construct a
+mine as part of a base (its factories producing the builders), use `Group::recordMine`:
 
 ```cpp
 auto bg = op2::createBuildingGroup(aiPlayer);
@@ -56,9 +64,8 @@ bg.recordMine(beacon);             // ALWAYS CommonOreMine - the beacon under it
 ```
 
 `recordMine` always records a `CommonOreMine`; the beacon decides common vs rare (recording `RareOreMine` directly
-does not work - an OP2 engine quirk). The mine must already have a surveyed beacon under it. See `Group::recordMine`
-in `op2/groups.hpp`. (A full BuildingGroup with a Structure/Vehicle Factory would also produce its own ConVecs +
-Robo-Miners and build a whole base - this sample just hands it the two units it needs for the one mine.)
+does not work - an OP2 engine quirk). A surveyed beacon must already exist under the location. See
+`Group::recordMine` in `op2/groups.hpp`.
 
 ## Build
 
@@ -67,6 +74,5 @@ cmake -S . -B build -G "Visual Studio 18 2026" -A Win32
 cmake --build build --config Release
 ```
 
-→ `build/Release/cMining.dll`. Drop it into your Outpost 2 / OPU install; it appears as a Colony game
-("TitanAPI AI Mining") and logs to `<OP2>\OPU\logs\cMining.log`. The log traces `SURVEYED` -> `mine BUILT` ->
-`mining group … (3 trucks)` -> `[mark N] AI … ore=…` climbing as the group hauls.
+-> `build/Release/cMining.dll`. Drop it into your Outpost 2 / OPU install; it appears as a Colony game
+("TitanAPI AI Mining") and logs to `<OP2>\OPU\logs\cMining.log`.
