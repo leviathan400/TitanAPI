@@ -24,8 +24,9 @@ struct Location {
   [[nodiscard]] constexpr int engineX() const { return x + kPadX; }
   [[nodiscard]] constexpr int engineY() const { return y + kPadY; }
 
-  /// Basic sanity check (non-negative tile). A real bounds check needs the loaded map; refined when
-  /// GameMap is wrapped.
+  /// Basic sanity check (non-negative tile) - constexpr and map-independent, so it can't know the map's size.
+  /// The REAL bounds check against the loaded map is `GameMap::onMap(loc)` (game.hpp), which is what the
+  /// `Game::create*` validators use.
   [[nodiscard]] constexpr bool onMap() const { return x >= 0 && y >= 0; }
 
   /// Engine pixel coordinates (tile*32, +16 when centered) - what the engine's pathfinder waypoints use.

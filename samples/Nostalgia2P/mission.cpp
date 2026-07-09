@@ -15,6 +15,7 @@
 
 using op2::Location;
 using MapID = op2::MapID;
+using UnitDirection = op2::UnitDirection;   // unit facing for VehicleSpec (East=0 .. NorthEast=7)
 
 // ---------------------------------------------------------------------------------------------------------------
 // Mission DLL exports - a 2-player multiplayer Last One Standing game on opu_02.map.
@@ -52,7 +53,7 @@ op2::BaseLayout topLeftLayout() {                       // buildingSet1 / unitSe
   b.vehicles = {
     { {  5, 13 }, MapID::ConVec }, { {  7, 13 }, MapID::ConVec }, { {  9, 13 }, MapID::ConVec },
     { {  5, 19 }, MapID::CargoTruck }, { {  7, 19 }, MapID::CargoTruck }, { {  9, 19 }, MapID::CargoTruck },
-    { { 16,  3 }, MapID::RoboSurveyor, MapID::None, 3 }, { { 18,  1 }, MapID::RoboMiner, MapID::None, 3 },
+    { { 16,  3 }, MapID::RoboSurveyor, MapID::None, UnitDirection::SouthWest }, { { 18,  1 }, MapID::RoboMiner, MapID::None, UnitDirection::SouthWest },
     { {  8, 16 }, MapID::Earthworker },
   };
   b.tubes = { { { 5, 10 }, { 5, 10 } }, { { 11, 10 }, { 19, 10 } }, { { 20, 10 }, { 20, 19 } } };
@@ -70,7 +71,7 @@ op2::BaseLayout bottomRightLayout() {                   // buildingSet4 / unitSe
   b.vehicles = {
     { { -9, -7 }, MapID::ConVec }, { { -7, -7 }, MapID::ConVec }, { { -5, -7 }, MapID::ConVec },
     { { -9, -19 }, MapID::CargoTruck }, { { -7, -19 }, MapID::CargoTruck }, { { -5, -19 }, MapID::CargoTruck },
-    { { -10, -5 }, MapID::RoboSurveyor, MapID::None, 1 }, { { -12, -7 }, MapID::RoboMiner, MapID::None, 1 },
+    { { -10, -5 }, MapID::RoboSurveyor, MapID::None, UnitDirection::SouthEast }, { { -12, -7 }, MapID::RoboMiner, MapID::None, UnitDirection::SouthEast },
     { { -8, -16 }, MapID::Earthworker },
   };
   b.tubes = { { { -10, -10 }, { -20, -10 } }, { { -21, -10 }, { -21, -18 } },

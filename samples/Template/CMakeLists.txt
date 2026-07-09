@@ -25,14 +25,15 @@ configure_file(version.rc.in "${CMAKE_CURRENT_BINARY_DIR}/version.rc" @ONLY)
 add_library(cTemplate SHARED
   mission.cpp
   "${CMAKE_CURRENT_BINARY_DIR}/version.rc"
-  op2_mission.hpp   # listed for IDEs
-  op2_log.hpp       # listed for IDEs
-  op2_crash.hpp     # listed for IDEs
+  ../common/op2_mission.hpp   # shared scaffolding (samples/common) - listed for IDEs
+  ../common/op2_log.hpp       # shared scaffolding - listed for IDEs
+  ../common/op2_crash.hpp     # shared scaffolding - listed for IDEs
 )
 
-# This mission's scaffolding lives here; the op2:: library is the live TitanAPI include tree.
+# Shared mission scaffolding comes from ../common; the op2:: library is the live TitanAPI include tree.
 target_include_directories(cTemplate PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../common"
   "${CMAKE_CURRENT_SOURCE_DIR}/../../TitanAPI/include")
 
 target_compile_definitions(cTemplate PRIVATE TITANAPI_VERSION="${PROJECT_VERSION}")

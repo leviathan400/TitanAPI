@@ -3,7 +3,7 @@
 # lowlands - survive and evacuate to the starship. Showcases the whole Layer 2 facade: the BaseBuilder, the
 # trigger/scheduler model, mining + combat orders, ScGroup patrols, the lava disaster, and starship victory.
 #
-# Like samples/ColonyDemo, this #includes the LIVE library from ../../TitanAPI/include, so it always builds
+# Like samples/SmokeTest, this #includes the LIVE library from ../../TitanAPI/include, so it always builds
 # against the current op2:: API.
 #
 #     cmake -S . -B build -G "Visual Studio 18 2026" -A Win32
@@ -28,14 +28,15 @@ configure_file(version.rc.in "${CMAKE_CURRENT_BINARY_DIR}/version.rc" @ONLY)
 add_library(cColdFrontTitan SHARED
   mission.cpp
   "${CMAKE_CURRENT_BINARY_DIR}/version.rc"
-  op2_mission.hpp   # listed for IDEs
-  op2_log.hpp       # listed for IDEs
-  op2_crash.hpp     # listed for IDEs
+  ../common/op2_mission.hpp   # shared scaffolding (samples/common) - listed for IDEs
+  ../common/op2_log.hpp       # shared scaffolding - listed for IDEs
+  ../common/op2_crash.hpp     # shared scaffolding - listed for IDEs
 )
 
-# This sample's scaffolding lives here; the op2:: library is the live TitanAPI include tree.
+# Shared mission scaffolding comes from ../common; the op2:: library is the live TitanAPI include tree.
 target_include_directories(cColdFrontTitan PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../common"
   "${CMAKE_CURRENT_SOURCE_DIR}/../../TitanAPI/include")
 
 target_compile_definitions(cColdFrontTitan PRIVATE

@@ -133,10 +133,13 @@ inline void buildingSize(int mapId, int& width, int& height) {
 
 /// Max hitpoints of the live unit at `p`: MapObjectType::playerStats_[creator].hp - the per-creator (upgraded)
 /// stats. Offsets probe-verified: playerStats_ @+8, sizeof(PerPlayerUnitStats)==68, hp @+0 (stats_@584 matched).
+/// The creator index is range-checked: it is a 4-bit nibble (0..15) but playerStats_ has only 7 entries, so a
+/// stray value would read past the array.
 inline int moMaxHp(char* p) {
   if (!p) return 0;
   char* mot = mapObjType(moTypeId(p));
-  return mot ? *reinterpret_cast<i32*>(mot + 8 + moCreator(p) * 68) : 0;
+  const int creator = moCreator(p);
+  return (mot && creator >= 0 && creator < 7) ? *reinterpret_cast<i32*>(mot + 8 + creator * 68) : 0;
 }
 
 // ---- docking (for dock / mining-route orders) --------------------------------------------------------------

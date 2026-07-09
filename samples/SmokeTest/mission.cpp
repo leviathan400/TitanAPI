@@ -199,6 +199,8 @@ static void run() {
   op2::Game::player(99).goHuman();  chk(!op2::Game::player(99).isHuman(), "goHuman() on bad player is a safe no-op");
   chkErr(op2::Game::createUnit(op2::MapID::Lynx, { -1, -1 }, p0), op2::Status::InvalidLocation, "createUnit() off-map");
   chkErr(op2::Game::createMine({ -1, -1 }),                       op2::Status::InvalidLocation, "createMine() off-map");
+  chkErr(op2::Game::createUnit(op2::MapID::Lynx, { 9999, 9999 }, p0),
+         op2::Status::InvalidLocation, "createUnit() beyond map bounds (GameMap::onMap)");
   chkErr(convecNK.build({ 62, 90 }),                             op2::Status::WrongType,       "build() with no kit");
   chkErr(truck.mine(op2::Unit{}, smelter),                       op2::Status::InvalidTarget,   "mine() invalid mine target");
 
@@ -217,6 +219,7 @@ static void run() {
 
 extern "C" int __stdcall DllMain(void* /*hinst*/, unsigned long reason, void* /*reserved*/) {
   if (reason == 1) {  // DLL_PROCESS_ATTACH
+    op2::log::setTickSource([] { return op2::Game::tick(); });   // prefix every log line with the game tick
     op2::log::linef("==================== TitanAPI mission DLL_PROCESS_ATTACH (pid=%lu) ====================", op2::log::pid());
 #ifdef TITANAPI_VERSION
     op2::log::linef("TitanAPI v%s (Layer 2 facade)", TITANAPI_VERSION);

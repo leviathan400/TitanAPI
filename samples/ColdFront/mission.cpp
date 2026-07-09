@@ -157,8 +157,8 @@ static void initProcImpl() {
   g_eden.setCommonOre(10000); g_eden.setFood(10000); g_eden.setWorkers(50);
 
   // ---- framing ----
-  op2::Game::forceMoraleGood();                          // steady morale - it's about the fight, not micro
-  op2::Game::setDaylightEverywhere(true);                // full daylight (no night cycle in this sample)
+  op2::ignore(op2::Game::forceMoraleGood());                          // steady morale - it's about the fight, not micro
+  op2::ignore(op2::Game::setDaylightEverywhere(true));                // full daylight (no night cycle in this sample)
   op2::Game::addMessage("Cold Front: build your colony and evacuate to the starship before the volcano consumes you!");
 
   // ---- stamp both colonies + the resource beacons ----
@@ -178,20 +178,20 @@ static void initProcImpl() {
     { {  99, 121 }, 1 }, { { 137, 76 }, 1 }, { { 58, 113 }, 0 }, { { 15, 39 }, 1 }, { { 240, 40 }, 1 },
   };
   for (const B& bn : beacons)
-    op2::Game::createMine(bn.at, bn.rare ? op2::abi::MineType::RareOre : op2::abi::MineType::CommonOre);
+    op2::ignore(op2::Game::createMine(bn.at, bn.rare ? op2::abi::MineType::RareOre : op2::abi::MineType::CommonOre));
 
   // ---- AI mining: survey + deploy the 2-bar deposit by the Plymouth base, then route the trucks ----
   g_sched.atMark(1, [] {                                  // surveyor reveals the nearest common beacon
     for (op2::Unit s : op2::Game::unitsOfType(MapID::RoboSurveyor))
       if (s.ownerId() == 1) { op2::Unit b = nearestCommonBeacon(s.location());
-                              if (b.valid()) { b.survey(1); s.move(b.location());
+                              if (b.valid()) { op2::ignore(b.survey(1)); op2::ignore(s.move(b.location()));
                                 op2::log::ailinef("surveyor surveying beacon at (%d,%d)", b.location().x, b.location().y); }
                               break; }
   });
   g_sched.atMark(5, [] {                                  // RoboMiner deploys it into an operational mine
     for (op2::Unit m : op2::Game::unitsOfType(MapID::RoboMiner))
       if (m.ownerId() == 1) { op2::Unit b = nearestCommonBeacon(m.location());
-                              if (b.valid()) { m.deploy(b.location());
+                              if (b.valid()) { op2::ignore(m.deploy(b.location()));
                                 op2::log::ailinef("RoboMiner deploying mine at (%d,%d)", b.location().x, b.location().y); }
                               break; }
   });
@@ -209,7 +209,7 @@ static void initProcImpl() {
       for (op2::Unit m : op2::Game::unitsOfType(MapID::CommonOreMine))    if (m.ownerId() == 1) { mine = m; break; }
       for (op2::Unit s : op2::Game::unitsOfType(MapID::CommonOreSmelter)) if (s.ownerId() == 1) { smelter = s; break; }
       if (mine.valid() && smelter.valid())
-        for (op2::Unit t : op2::Game::unitsOfType(MapID::CargoTruck)) if (t.ownerId() == 1) t.mine(mine, smelter);
+        for (op2::Unit t : op2::Game::unitsOfType(MapID::CargoTruck)) if (t.ownerId() == 1) op2::ignore(t.mine(mine, smelter));
       op2::log::ai("2-bar mine online - original trucks routed to the smelter");
     });
   });
@@ -230,7 +230,7 @@ static void initProcImpl() {
   g_sched.everyMarks(12, [] {
     if (prodIdx >= int(sizeof(prod) / sizeof(prod[0]))) return;
     for (op2::Unit vf : op2::Game::unitsOfType(MapID::VehicleFactory))
-      if (vf.ownerId() == 1) { vf.produce(prod[prodIdx], prodW[prodIdx]);
+      if (vf.ownerId() == 1) { op2::ignore(vf.produce(prod[prodIdx], prodW[prodIdx]));
                                op2::log::ailinef("VehicleFactory producing item %d (mark %d)", prodIdx, op2::Game::mark());
                                ++prodIdx; break; }
   });
@@ -264,7 +264,7 @@ static void initProcImpl() {
       if (cv.ownerId() != 1) continue;
       cv.setKit(j.type);                                            // load the structure kit directly
       const auto site = op2::GameMap::findBuildSite(j.type, j.at);  // nearest clear footprint to the target
-      if (site) { cv.build(*site); g_builder = cv; g_buildAnchor = *site; g_buildType = j.type;
+      if (site) { op2::ignore(cv.build(*site)); g_builder = cv; g_buildAnchor = *site; g_buildType = j.type;
                   op2::log::ailinef("ConVec building structure %d near (%d,%d)", g_buildIdx, site->x, site->y); }
       break;
     }
@@ -272,12 +272,12 @@ static void initProcImpl() {
 
   // ---- Green Plymouth: two scripted raiding parties cross the map and leave ----
   auto spawnRaiders = [](int tag) {
-    for (int i = 0; i < 2; ++i) op2::Game::createUnit(MapID::Lynx, { 161, 127 }, g_green, MapID::EMP);
-    for (int i = 0; i < 4; ++i) op2::Game::createUnit(MapID::Lynx, { 161, 127 }, g_green, MapID::Microwave);
+    for (int i = 0; i < 2; ++i) op2::ignore(op2::Game::createUnit(MapID::Lynx, { 161, 127 }, g_green, MapID::EMP));
+    for (int i = 0; i < 4; ++i) op2::ignore(op2::Game::createUnit(MapID::Lynx, { 161, 127 }, g_green, MapID::Microwave));
     op2::log::ailinef("green raiders wave %d spawned at (161,127)", tag);
   };
   auto marchRaiders = [] {                                 // send every green Lynx to the top exit, then remove
-    for (op2::Unit u : op2::Game::unitsOfType(MapID::Lynx)) if (u.ownerId() == 2) u.move({ 200, 1 });
+    for (op2::Unit u : op2::Game::unitsOfType(MapID::Lynx)) if (u.ownerId() == 2) op2::ignore(u.move({ 200, 1 }));
   };
   g_sched.atMark(60,  [spawnRaiders] { spawnRaiders(1); });
   g_sched.atMark(61,  [marchRaiders] { marchRaiders(); });
@@ -287,7 +287,7 @@ static void initProcImpl() {
     for (op2::Unit u : op2::Game::unitsOfType(MapID::Lynx)) {
       if (u.ownerId() != 2) continue;
       const Location l = u.location();
-      if ((l.x - 200) * (l.x - 200) + (l.y - 1) * (l.y - 1) <= 25) u.remove();
+      if ((l.x - 200) * (l.x - 200) + (l.y - 1) * (l.y - 1) <= 25) op2::ignore(u.remove());
     }
   });
 
@@ -307,11 +307,11 @@ static void initProcImpl() {
   g_sched.atMark(240, [] { op2::Game::addMessage("Our scientists have discovered the volcano is NOT dormant!"); });
   g_sched.atMark(250, [lavaVent] {                         // WARN - a slow ominous glow builds at the vent
     op2::Game::addMessage("WARNING: the old volcano is stirring - relocate your colony!");
-    op2::Game::createEruption(lavaVent, /*VerySlow*/ 15, /*now=*/ true);
+    op2::ignore(op2::Game::createEruption(lavaVent, /*VerySlow*/ 15, /*now=*/ true));
   });
   g_sched.atMark(260, [lavaVent] {                         // ERUPT - accelerate the flow into a violent flood
     op2::Game::setLavaSpeed(45);                            // "Slow" on OP2's named spread scale
-    op2::Game::createEruption(lavaVent, 45, /*now=*/ true);
+    op2::ignore(op2::Game::createEruption(lavaVent, 45, /*now=*/ true));
     op2::Game::addMessage("The volcano ERUPTS! Lava floods the lowlands!");
   });
   g_sched.atMark(275, [] { op2::Game::addMessage("Re-establish your Command Center before your last one falls!"); });

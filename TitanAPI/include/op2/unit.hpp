@@ -163,14 +163,14 @@ public:
     return dispatch(b);
   }
 
-  /// Patrol a route, cycling through its waypoints (vehicles). Up to 8 waypoints (the engine's path limit).
+  /// Patrol a route, cycling through its waypoints (vehicles). At most 8 waypoints (the engine's path limit) -
+  /// a longer route returns InvalidTarget rather than silently dropping the tail.
   Result<void> patrol(std::span<const Location> route) {
-    if (route.empty()) return fail(err::InvalidTarget);
+    if (route.empty() || route.size() > 8) return fail(err::InvalidTarget);
     abi::raw::Waypoint wps[8];
-    const std::size_t n = (route.size() < 8) ? route.size() : 8;
-    for (std::size_t i = 0; i < n; ++i) wps[i] = abi::raw::Waypoint{ route[i].waypointBits() };
+    for (std::size_t i = 0; i < route.size(); ++i) wps[i] = abi::raw::Waypoint{ route[i].waypointBits() };
     abi::CmdBuilder b{ abi::CommandType::Patrol };
-    b.oneUnit(u16(id_)).waypoints({ wps, n });
+    b.oneUnit(u16(id_)).waypoints({ wps, route.size() });
     return dispatch(b);
   }
   /// Patrol back and forth between two points.

@@ -24,13 +24,14 @@ configure_file(version.rc.in "${CMAKE_CURRENT_BINARY_DIR}/version.rc" @ONLY)
 add_library(cMining SHARED
   mission.cpp
   "${CMAKE_CURRENT_BINARY_DIR}/version.rc"
-  op2_mission.hpp   # listed for IDEs
-  op2_log.hpp       # listed for IDEs
-  op2_crash.hpp     # listed for IDEs
+  ../common/op2_mission.hpp   # shared scaffolding (samples/common) - listed for IDEs
+  ../common/op2_log.hpp       # shared scaffolding - listed for IDEs
+  ../common/op2_crash.hpp     # shared scaffolding - listed for IDEs
 )
 
 target_include_directories(cMining PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../common"
   "${CMAKE_CURRENT_SOURCE_DIR}/../../TitanAPI/include")
 
 target_compile_definitions(cMining PRIVATE TITANAPI_VERSION="${PROJECT_VERSION}" OP2LOG_NAME="cMining")

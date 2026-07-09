@@ -3,6 +3,48 @@
 All notable changes to **Outpost 2 TitanAPI** are documented here. This is the public changelog; it begins at
 the first public release.
 
+## 0.6.7 - 2026-07-08 - Correctness pass + shared sample scaffolding
+
+### Fixed
+- **Off-map locations are now validated against the real map bounds.** `Location::onMap()` can only check
+  "non-negative" (a constexpr value type cannot know the map), so a create at e.g. `{9999, 9999}` passed
+  validation and went to the engine. New **`GameMap::onMap(loc)`** checks the LOADED map's width x height, and
+  every `Game::create*` location validator now uses it (falling back to the non-negative check if no map is
+  loaded). Self-test +1 (now **157**): an out-of-bounds `createUnit` must return `InvalidLocation`.
+- **`Unit::patrol` rejects routes longer than 8 waypoints** (the engine's path limit) with `InvalidTarget`
+  instead of silently dropping the tail of the route.
+- **`abi::moMaxHp` range-checks the creator index** before indexing the 7-entry per-player stats table - the
+  creator nibble can hold 0..15, so a stray value read past the array. Affects `maxHitpoints` / `hitpoints` /
+  `health`.
+- **`MiningOperation`'s internal `near()` helper renamed `isNear`** - `<windows.h>` #defines `near` away, so a
+  mission that included windows.h before `op2/mining.hpp` failed to compile.
+
+### Changed
+- **The sample scaffolding headers (`op2_mission.hpp` / `op2_log.hpp` / `op2_crash.hpp`) are now shared from
+  `samples/common/`** instead of vendored per sample (the ten copies had drifted into four variants). Every
+  sample and the TitanAPI test mission include from there; `samples/Layer1` keeps its frozen copies by design.
+  The shared logger is the newest variant (game-tick-prefixed lines, `log::stamp` wall-clock stamps, `log::pid`,
+  per-mission `OP2LOG_NAME`); the SmokeTest sample gained the tick prefix and its own AI log channel with it.
+
+## 0.6.6 - 2026-07-01 - Region idle-rect for createMiningOperation
+
+### Added
+- **`createMiningOperation` now accepts the idle rect as an `op2::Region`** (`{ topLeft, bottomRight }`) - the
+  canonical form: `createMiningOperation(owner, smelter, mine, idleRect, numTrucks[, autoHeal[, buildRect]])`. The
+  original two-corner signature (`..., idleTL, idleBR, ...`) is kept as an overload, so existing callers are
+  unaffected. `samples/Mining` now uses the `Region` form.
+
+### Changed
+- **`createMiningOperation` auto-heal reworked to run through the engine's own AI build system** - no units are
+  spawned into existence mid-game anymore (0.6.5 rebuilt a destroyed mine/smelter and replaced lost trucks via
+  `createUnit`). Setup now adopts the AI's powered Structure Factory + Vehicle Factory + ConVec into a
+  BuildingGroup, sets a build rect (the new optional `buildRect` parameter; auto-derived around the mine + smelter
+  when omitted), RECORDS the smelter and mine (`recordBuilding` / `recordMine`) and reinforces the truck haul
+  (`recordVehReinforceGroup`) - from then on the ENGINE rebuilds destroyed structures with real factory production
+  and restocks lost trucks, the way the stock campaign AI does. `tickMiningOperations()` no longer creates
+  anything: it only re-binds the MiningGroup to a mine/smelter the engine has rebuilt, so hauling resumes.
+  Requirements and the factory-adoption caveat are documented in `op2/mining.hpp`.
+
 ## 0.6.5 - 2026-07-01 - One-call self-healing AI mining operation
 
 ### Added

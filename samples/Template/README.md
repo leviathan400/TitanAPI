@@ -36,6 +36,7 @@ into your Outpost 2 / OPU install, start a new Colony Game, and pick your missio
 - `op2_log.hpp` - the file logger (`op2::log::line` / `linef`).
 - `op2_crash.hpp` - SEH guards + the unhandled-fault handler.
 
-These three ship with every sample. The actual API (`Game` / `Player` / `Unit` / orders / triggers / BaseBuilder)
+These three are shared by every sample from [`../common/`](../common/) (the CMakeLists already has `../common` on
+the include path - nothing to copy). The actual API (`Game` / `Player` / `Unit` / orders / triggers / BaseBuilder)
 comes from the live library at `../../TitanAPI/include`. New to TitanAPI? Read
 [`../../docs/GETTING-STARTED.md`](../../docs/GETTING-STARTED.md).

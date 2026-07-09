@@ -27,16 +27,19 @@ configure_file(version.rc.in "${CMAKE_CURRENT_BINARY_DIR}/version.rc" @ONLY)
 add_library(cTitanSmokeTest SHARED
   mission.cpp
   "${CMAKE_CURRENT_BINARY_DIR}/version.rc"
-  op2_mission.hpp   # listed for IDEs
-  op2_log.hpp       # listed for IDEs
+  ../common/op2_mission.hpp   # shared scaffolding (samples/common) - listed for IDEs
+  ../common/op2_log.hpp       # shared scaffolding - listed for IDEs
 )
 
-# This sample's mission scaffolding lives here; the op2:: library is the live TitanAPI include tree.
+# Shared mission scaffolding comes from ../common; the op2:: library is the live TitanAPI include tree.
 target_include_directories(cTitanSmokeTest PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../common"
   "${CMAKE_CURRENT_SOURCE_DIR}/../../TitanAPI/include")
 
-target_compile_definitions(cTitanSmokeTest PRIVATE TITANAPI_VERSION="${PROJECT_VERSION}")
+target_compile_definitions(cTitanSmokeTest PRIVATE
+  TITANAPI_VERSION="${PROJECT_VERSION}"
+  OP2LOG_NAME="cTitanSmokeTest")   # main log = cTitanSmokeTest.log; AI channel = cTitanSmokeTest-AI.log
 target_compile_options(cTitanSmokeTest PRIVATE /std:c++23preview)   # genuine C++23 (not the C++26 /std:c++latest track)
 
 set_target_properties(cTitanSmokeTest PROPERTIES OUTPUT_NAME "cTitanSmokeTest" PREFIX "")

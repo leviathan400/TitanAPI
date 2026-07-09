@@ -7,7 +7,7 @@
 # Output: build/Release/cTitanAPI.dll
 
 cmake_minimum_required(VERSION 3.21)
-project(TitanAPI VERSION 0.6.4 LANGUAGES CXX RC DESCRIPTION "Outpost 2 TitanAPI test mission DLL")
+project(TitanAPI VERSION 0.6.7 LANGUAGES CXX RC DESCRIPTION "Outpost 2 TitanAPI test mission DLL")
 
 if(NOT MSVC)
   message(FATAL_ERROR "Outpost 2 is a 32-bit MSVC target - build with MSVC (cl.exe).")
@@ -25,13 +25,14 @@ configure_file(version.rc.in "${CMAKE_CURRENT_BINARY_DIR}/version.rc" @ONLY)
 add_library(cTitanAPI SHARED
   src/mission.cpp
   "${CMAKE_CURRENT_BINARY_DIR}/version.rc"
-  src/op2_mission.hpp                 # listed for IDEs
-  src/op2_log.hpp                     # listed for IDEs
+  ../samples/common/op2_mission.hpp   # shared scaffolding (samples/common) - listed for IDEs
+  ../samples/common/op2_log.hpp       # shared scaffolding - listed for IDEs
   include/op2/abi/memory.hpp          # listed for IDEs
   include/op2/abi/enums.hpp           # listed for IDEs
 )
 
-target_include_directories(cTitanAPI PRIVATE include src)
+# Mission scaffolding (op2_mission / op2_log / op2_crash) is the shared copy in samples/common.
+target_include_directories(cTitanAPI PRIVATE include src ../samples/common)
 
 # Make the project version available to the code (used in the startup log line).
 target_compile_definitions(cTitanAPI PRIVATE TITANAPI_VERSION="${PROJECT_VERSION}")

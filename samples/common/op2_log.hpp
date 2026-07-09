@@ -1,7 +1,8 @@
 #pragma once
-// op2_log.hpp - tiny append-only debug logger for the TitanAPI mission.
+// op2_log.hpp - tiny append-only debug logger for the TitanAPI mission. SHARED sample scaffolding: this is
+// the one canonical copy (samples/common/); every sample includes it from here (OP2LOG_NAME set per mission).
 //
-// Writes to  <Outpost2.exe dir>\OPU\logs\cTitanAPI.log  (or <dir>\logs if the exe already sits in an OPU
+// Writes to  <Outpost2.exe dir>\OPU\logs\<OP2LOG_NAME>.log  (or <dir>\logs if the exe already sits in an OPU
 // folder). Each line is opened+written+closed via raw Win32 (KERNEL32 only - no <windows.h>, so it does
 // not clash with memory.hpp's GetModuleHandleA declaration; keeps the DLL importing only KERNEL32). The
 // open/close-per-line cost buys a crucial property for crash debugging: the last line is flushed to disk
@@ -104,15 +105,18 @@ inline void write_line(const char* path, const char* msg) {
 /// Absolute path the log resolves to (also written into the log on the first line).
 inline const char* path() { if (!detail::g_ready) detail::resolve_path(); return detail::g_path; }
 
+/// The OS process id - log it once on DLL attach/detach, not on every line (or use log::stamp, which includes it).
+inline unsigned long pid() { return GetCurrentProcessId(); }
+
 /// Set the game-tick source so each log line is prefixed with the current game time. Pass a function such as
 /// `[]{ return op2::Game::tick(); }`. Safe to call at DLL attach (the source is only invoked when logging).
 inline void setTickSource(int (*fn)()) { detail::g_tickSource = fn; }
 
-/// Append one line to the MAIN log (prefixed with the game tick + pid), flushed immediately.
+/// Append one line to the MAIN log (prefixed with the game tick), flushed immediately.
 inline void line(const char* msg) { detail::write_line(detail::g_path, msg); }
 
 /// Append one line to the AI-action channel (<name>-AI.log) - a separate file for monitoring/debugging the
-/// scripted computer player's decisions, like OP2Lua's AI log. Same tick+pid prefix, flushed per line.
+/// scripted computer player's decisions, like OP2Lua's AI log. Same tick prefix, flushed per line.
 inline void ai(const char* msg) { detail::write_line(detail::g_aiPath, msg); }
 
 /// Log a human-readable local date/time line (call once at startup, so each run is timestamped).

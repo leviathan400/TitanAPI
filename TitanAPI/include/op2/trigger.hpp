@@ -5,7 +5,7 @@
 // (GetProcAddress) and calling it (void __cdecl, no args). Classic missions write `void MyFn() {...}` and
 // export it. To let TitanAPI missions pass a C++ lambda / std::function instead, we bridge it:
 //
-//   * TitanAPI exports a fixed pool of dispatcher stubs:  TitanTrigger0 .. TitanTrigger15.
+//   * TitanAPI exports a fixed pool of dispatcher stubs:  TitanTrigger0 .. TitanTrigger63.
 //   * Creating a trigger RESERVES a slot, stores your callback, and hands the engine that slot's stub name.
 //   * When the engine fires the trigger it calls TitanTrigger<k>(), which invokes the stored callback.
 //

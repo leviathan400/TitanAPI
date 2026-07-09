@@ -54,6 +54,23 @@ public:
   [[nodiscard]] sentinel end()   const { return {}; }
 };
 
+namespace map_detail {
+/// Read an int field of the MapImpl singleton (@0x54F7F8) at byte offset `off`. (Shared by GameMap below and
+/// the Game::create* location validators, which sit above GameMap in this header.)
+inline int mapInt(int off) { return *reinterpret_cast<int*>(reinterpret_cast<char*>(abi::reloc(0x54F7F8)) + off); }
+/// Map width in VISIBLE tiles (MapImpl::tileWidth_ @+16, halved when the off-screen padding is folded in -
+/// paddingOffsetTileX_ @+56). Height in tiles (tileHeight_ @+24).
+inline int width()  { const int w = mapInt(16); return (mapInt(56) != 0) ? w / 2 : w; }
+inline int height() { return mapInt(24); }
+/// Full "is this a real tile of the LOADED map" check: non-negative AND inside [width) x [height). Falls back
+/// to the non-negative sanity check if the map dimensions aren't readable (no map loaded yet).
+inline bool onMap(Location at) {
+  if (at.x < 0 || at.y < 0) return false;
+  const int w = width(), h = height();
+  return (w <= 0 || h <= 0) || (at.x < w && at.y < h);
+}
+} // namespace map_detail
+
 struct Game {
   /// Handle for player slot `n`.
   static Player player(int n) { return Player{ n }; }
@@ -94,8 +111,8 @@ struct Game {
   ///       auto-armed with a Laser - a weaponless combat vehicle crashes OP2, so this is never the author's fault.
   static Result<Unit> createUnit(MapID type, Location at, Player owner, MapID weaponCargo = MapID::None,
                                  UnitDirection facing = UnitDirection::East) {
-    if (!owner.valid()) return fail(err::InvalidPlayer);
-    if (!at.onMap())    return fail(err::InvalidLocation);
+    if (!owner.valid())          return fail(err::InvalidPlayer);
+    if (!map_detail::onMap(at))  return fail(err::InvalidLocation);   // full bounds vs the loaded map
 
     // Guard against the weaponless-combat-vehicle crash: give it a Laser if the author didn't pick a weapon.
     if (weaponCargo == MapID::None && isWeaponPlatform(type)) weaponCargo = MapID::Laser;
@@ -113,7 +130,7 @@ struct Game {
   /// (variant 0; skips the MineManager variant lookup). The new beacon is the head of Gaia's beacon list.
   static Result<Unit> createMine(Location at, abi::MineType ore = abi::MineType::CommonOre,
                                  abi::OreYield yield = abi::OreYield::Bar2) {
-    if (!at.onMap()) return fail(err::InvalidLocation);
+    if (!map_detail::onMap(at)) return fail(err::InvalidLocation);
     if (!abi::callFast<0x478940, int>(int(abi::MapID::MiningBeacon), at.engineX(), at.engineY(),
                                       int(ore), int(yield), 0))
       return fail(err::EngineRejected);
@@ -190,7 +207,7 @@ struct Game {
   /// Meteor strike at `where`. size: 0 = large, 1 = medium, 2 = small, -1 = random. `now` strikes immediately
   /// instead of after the warning. (CreateMeteor @0x4783B0.)
   static Result<void> createMeteor(Location where, int size = -1, bool now = false) {
-    if (!where.onMap()) return fail(err::InvalidLocation);
+    if (!map_detail::onMap(where)) return fail(err::InvalidLocation);
     void* d = abi::callFast<0x4783B0, void*>(where.engineX(), where.engineY(), size);
     if (!d) return fail(err::EngineRejected);
     if (now) abi::startDisasterNow(d);
@@ -199,7 +216,7 @@ struct Game {
 
   /// Earthquake centred at `where` with the given `magnitude`. `now` strikes immediately. (CreateEarthquake @0x478320.)
   static Result<void> createEarthquake(Location where, int magnitude, bool now = false) {
-    if (!where.onMap()) return fail(err::InvalidLocation);
+    if (!map_detail::onMap(where)) return fail(err::InvalidLocation);
     void* d = abi::callFast<0x478320, void*>(where.engineX(), where.engineY(), magnitude);
     if (!d) return fail(err::EngineRejected);
     if (now) abi::startDisasterNow(d);
@@ -208,7 +225,7 @@ struct Game {
 
   /// Volcanic eruption (spreading lava) at `where`. `now` erupts immediately. (CreateEruption @0x4782E0.)
   static Result<void> createEruption(Location where, int spreadSpeed, bool now = false) {
-    if (!where.onMap()) return fail(err::InvalidLocation);
+    if (!map_detail::onMap(where)) return fail(err::InvalidLocation);
     void* d = abi::callFast<0x4782E0, void*>(where.engineX(), where.engineY(), spreadSpeed);
     if (!d) return fail(err::EngineRejected);
     if (now) abi::startDisasterNow(d);
@@ -347,7 +364,7 @@ struct Game {
   /// Drop salvageable wreckage that grants tech `techID` (must be 8000..12095) when carried to a Spaceport.
   /// (CreateWreckage @0x4789F0.)
   static Result<void> createWreckage(Location where, int techID, bool discovered = false) {
-    if (!where.onMap())                  return fail(err::InvalidLocation);
+    if (!map_detail::onMap(where))       return fail(err::InvalidLocation);
     if (techID < 8000 || techID > 12095) return fail(err::InvalidTarget);
     return abi::callFast<0x4789F0, int>(where.engineX(), where.engineY(), techID, discovered ? 1 : 0)
              ? Result<void>{} : fail(err::EngineRejected);
@@ -432,10 +449,16 @@ struct GameMap {
   // --- tile-property reads (MapImpl::Tile) - offsets pinned by offsetof-probe; pMapObjArray_=80 validated ---
 
   /// Map height in tiles. (MapImpl::tileHeight_ @+24.)
-  static int getHeight() { return mapInt(24); }
+  static int getHeight() { return map_detail::height(); }
   /// Map width in tiles (with off-screen padding folded out, matching the in-game status-bar coordinate space).
   /// (MapImpl::tileWidth_ @+16 / paddingOffsetTileX_ @+56.)
-  static int getWidth() { return mapInt(16) / ((mapInt(56) != 0) ? 2 : 1); }
+  static int getWidth() { return map_detail::width(); }
+
+  /// Is `where` a real tile of the LOADED map - non-negative and inside [getWidth() x getHeight())? This is
+  /// the full bounds check (Location::onMap alone is only the constexpr non-negative sanity check - it cannot
+  /// know the map). The Game::create* validators use it, so an off-map create returns InvalidLocation instead
+  /// of reaching the engine.
+  static bool onMap(Location where) { return map_detail::onMap(where); }
 
   /// Terrain passability class at `where`. (TileData.cellType - bits 0-4.)
   static CellType getCellType(Location where)     { return CellType(tileData(where) & 0x1Fu); }
@@ -465,7 +488,7 @@ struct GameMap {
   /// CanPlaceStructure thunk, which dereferences script-invalid global state and crashes even for a valid tile
   /// (OP2Lua's hard-won note). Check every tile of a footprint to validate a whole site.
   static bool canPlace(Location where) {
-    return where.onMap() && (where.x < getWidth()) && (where.y < getHeight())
+    return onMap(where)
            && cellPassable(int(getCellType(where))) && !getWallOrBuilding(where) && !getLavaPresent(where);
   }
 
@@ -514,9 +537,6 @@ private:
       default: return true;
     }
   }
-  /// Read an int field of the MapImpl singleton (@0x54F7F8) at byte offset `off`.
-  static int mapInt(int off) { return *reinterpret_cast<int*>(reinterpret_cast<char*>(abi::reloc(0x54F7F8)) + off); }
-
   /// Read the packed TileData u32 at `where` (visible -> engine tile). Mirrors MapImpl::Tile():
   ///   offset = ((mask&x)&31) + ((((mask&x)>>5) << log2TileHeight_) + y) << 5),  arr = pTileArray_.
   static abi::u32 tileData(Location where) {

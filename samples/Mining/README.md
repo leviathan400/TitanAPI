@@ -4,8 +4,10 @@ A complete, self-managing **ore operation for an AI player in one call**. A huma
 run a full mine - and heal it when it is attacked - all on its own (no human micro), set up with a single function:
 
 ```cpp
-op2::createMiningOperation(ai, smelterLoc, mineLoc, idleTL, idleBR, /*numTrucks*/ 3, /*autoHeal*/ true);
+op2::createMiningOperation(ai, smelterLoc, mineLoc, idleRect, /*numTrucks*/ 3, /*autoHeal*/ true);
 ```
+
+`idleRect` is an `op2::Region` (`{ topLeft, bottomRight }`); an overload also accepts the two corners directly.
 
 That one call places the ore mine (surveying a beacon first), the smelter, a `MiningGroup` hauling between them,
 and the Cargo Trucks. Then a single line in `AIProc` keeps it alive:

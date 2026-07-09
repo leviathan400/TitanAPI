@@ -1,5 +1,6 @@
 #pragma once
-// op2_crash.hpp - crash diagnostics for the mission DLL.
+// op2_crash.hpp - crash diagnostics for the mission DLL. SHARED sample scaffolding: this is the one canonical
+// copy (samples/common/); every sample includes it from here.
 //
 // Two layers, both writing the fault to the log so a crash leaves a breadcrumb instead of a silent death:
 //   1) SEH guards (op2::crash::guard) wrap the engine entry points (InitProc / AIProc). A structured exception
