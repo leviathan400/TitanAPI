@@ -35,7 +35,7 @@ jobs:
           - { name: RisingFromTheAshes, path: samples/RisingFromTheAshes }
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Default generator = the runner's newest Visual Studio; -A Win32 is required (Outpost 2 is 32-bit).
       - name: Configure
@@ -45,7 +45,7 @@ jobs:
         run: cmake --build build --config Release
 
       - name: Upload DLL
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.name }}
           path: build/Release/*.dll
