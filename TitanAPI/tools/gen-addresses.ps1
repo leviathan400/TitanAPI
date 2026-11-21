@@ -43,5 +43,5 @@ foreach($g in $groups){
   $L.Add('')
 }
 $L.Add('} // namespace op2::abi::addr')
-[IO.File]::WriteAllText((Join-Path $Out 'addresses.hpp'), ($L -join "`r`n") + "`r`n", (New-Object Text.UTF8Encoding($false)))
+[IO.File]::WriteAllText((Join-Path $Out 'addresses.hpp'), ($L -join "`n") + "`n", (New-Object Text.UTF8Encoding($false)))
 "addresses.hpp written: $total constants in $($groups.Count) class namespaces (from $($rows.Count) rows)."

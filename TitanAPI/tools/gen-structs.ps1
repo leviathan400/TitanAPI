@@ -59,5 +59,5 @@ foreach($st in $order){
   $L.Add('};'); $L.Add(''); $structCount++
 }
 $L.Add('} // namespace op2::abi::raw')
-[IO.File]::WriteAllText((Join-Path $Out 'structs.scaffold.hpp'), ($L -join "`r`n") + "`r`n", (New-Object Text.UTF8Encoding($false)))
+[IO.File]::WriteAllText((Join-Path $Out 'structs.scaffold.hpp'), ($L -join "`n") + "`n", (New-Object Text.UTF8Encoding($false)))
 "structs.scaffold.hpp written: $structCount structs, $fieldCount fields (SCAFFOLD -- review before use)."

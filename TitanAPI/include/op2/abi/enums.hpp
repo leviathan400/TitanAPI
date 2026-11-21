@@ -8,17 +8,6 @@
 
 namespace op2::abi {
 
-enum class UnitDirection : int {
-  East = 0,
-  SouthEast,
-  South,
-  SouthWest,
-  West,
-  NorthWest,
-  North,
-  NorthEast,
-};
-
 enum class OreType : std::int8_t {
   Random = -1,
   Common = 0,
@@ -98,6 +87,17 @@ enum class TriggerDamage : int {
   _100 = 1,
   _75,
   _50,
+};
+
+enum class UnitDirection : int {
+  East = 0,
+  SouthEast,
+  South,
+  SouthWest,
+  West,
+  NorthWest,
+  North,
+  NorthEast,
 };
 
 enum class UnitClassification : int {
@@ -704,6 +704,33 @@ enum class CombatGroupObjective : int {
   ExitMap,
 };
 
+namespace BitmapFlagsImpl { enum BitmapFlags : std::uint32_t {
+  BitmapFlagLoadPaletteData = (1u <<  0),
+  BitmapFlagFreeImageBuffer = (1u <<  3),
+  BitmapFlagSaveBmpFormat = (1u << 31),
+}; }
+using BitmapFlags = BitmapFlagsImpl::BitmapFlags;
+
+enum class DrawBackgroundMethod : int {
+  _8Pal16 = 0,
+  _8Pal16MaskedBlightDither,
+  _8Pal16DayNightTransition,
+  FadeDestSourceFadeMask,
+  Copy16Raw,
+  Copy16Raw_2,
+  Copy16Raw_3,
+  Copy16Raw_4,
+  FadeDestSourceFadeMask_2,
+  _8Pal16FullBlightDither = 15,
+};
+
+enum class DrawSpriteMethod : int {
+  _8Pal16Transparent0 = 0,
+  _8Pal16DayNightTransitionTransparent0,
+  _8Pal16DayNightTransitionTransparent0_2,
+  FadeDestSourceFadeMask,
+};
+
 enum class TransportLayerCommand : int {
   JoinRequest = 0,
   JoinGranted = 1,
@@ -735,31 +762,10 @@ enum class PokeStatusCode : int {
   GameDropped,
 };
 
-namespace BitmapFlagsImpl { enum BitmapFlags : std::uint32_t {
-  BitmapFlagLoadPaletteData = (1u <<  0),
-  BitmapFlagFreeImageBuffer = (1u <<  3),
-  BitmapFlagSaveBmpFormat = (1u << 31),
-}; }
-using BitmapFlags = BitmapFlagsImpl::BitmapFlags;
-
-enum class DrawBackgroundMethod : int {
-  _8Pal16 = 0,
-  _8Pal16MaskedBlightDither,
-  _8Pal16DayNightTransition,
-  FadeDestSourceFadeMask,
-  Copy16Raw,
-  Copy16Raw_2,
-  Copy16Raw_3,
-  Copy16Raw_4,
-  FadeDestSourceFadeMask_2,
-  _8Pal16FullBlightDither = 15,
-};
-
-enum class DrawSpriteMethod : int {
-  _8Pal16Transparent0 = 0,
-  _8Pal16DayNightTransitionTransparent0,
-  _8Pal16DayNightTransitionTransparent0_2,
-  FadeDestSourceFadeMask,
+enum class SettingToggle : int {
+  Default = -1,
+  Off = 0,
+  On = 1,
 };
 
 namespace StringIndexImpl { enum StringIndex : size_t {

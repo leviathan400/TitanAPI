@@ -36,7 +36,8 @@ target_include_directories(cTemplate PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/../common"
   "${CMAKE_CURRENT_SOURCE_DIR}/../../TitanAPI/include")
 
-target_compile_definitions(cTemplate PRIVATE TITANAPI_VERSION="${PROJECT_VERSION}")
+target_compile_definitions(cTemplate PRIVATE TITANAPI_VERSION="${PROJECT_VERSION}"
+  OP2LOG_NAME="cTemplate")   # main log = OPU\logs\cTemplate.log (rename with the mission)
 target_compile_options(cTemplate PRIVATE /std:c++23preview)   # genuine C++23 (not the C++26 /std:c++latest track)
 
 set_target_properties(cTemplate PROPERTIES OUTPUT_NAME "cTemplate" PREFIX "")

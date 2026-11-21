@@ -28,8 +28,10 @@ struct BuildingGroupImpl;
 struct BuildingStats;
 struct BuildWallCommand;
 struct ButtonDisplayInfo;
-struct CargoKit;
+struct Cargo___anon_;
+struct Cargo___anon____anon_;
 struct CargoRouteCommand;
+struct CargoTruck;
 struct CConfig;
 struct CellTypeInfo;
 struct ChatCommand;
@@ -42,6 +44,7 @@ struct CommandTarget;
 struct CommandTarget___anon_;
 struct CommandViewButton;
 struct ConnectedTileMapping;
+struct ConVec;
 struct CreateCommand;
 struct CreateCommand___anon_;
 struct CreateGameInfo;
@@ -49,14 +52,18 @@ struct DayNightManager;
 struct DefaultScGroupInfo;
 struct DetailPane;
 struct DozeCommand;
+struct Earthquake;
+struct Earthworker;
 struct EchoExternalAddress;
+struct Eruption;
+struct ESG;
 struct FactoryBuilding;
 struct FightGroupImpl;
 struct FileRStream;
 struct FileRWStream;
 struct FileWStream;
 struct FilterNode;
-struct FilterPlayerUnitIterator;
+struct FilterUnitIteratorBase;
 struct Font;
 struct FrameComponentInfo;
 struct FrameInfo;
@@ -66,6 +73,7 @@ struct FuncReference;
 struct Game;
 struct GameFlags;
 struct GameFrame;
+struct GameIdentifier;
 struct GameImpl;
 struct GameMap;
 struct GameMessage;
@@ -75,8 +83,8 @@ struct GameServerPoke;
 struct GameStartInfo;
 struct GameStartInfo___anon_;
 struct GameVersion;
-struct GameVersion___anon_;
 struct Garage;
+struct GeoCon;
 struct GFXBitmap;
 struct GFXCDSSurface;
 struct GFXClippedSurface;
@@ -86,6 +94,8 @@ struct GFXPalette;
 struct GFXSpriteBitmap;
 struct GFXSurface;
 struct GFXTilesetBitmap;
+struct GlobalUnitEnum;
+struct GlobalUnitIterator;
 struct GlobalUnitStats;
 struct GlobalUnitStats___anon_;
 struct GlyphMetrics;
@@ -93,6 +103,8 @@ struct GroupFilter;
 struct GroupIterator;
 struct GUID;
 struct GurManager;
+struct Hive;
+struct HiveManager;
 struct HostedGameSearchQuery;
 struct HostedGameSearchReply;
 struct HostGameParameters;
@@ -136,6 +148,7 @@ struct MemRWStream;
 struct MenuState;
 struct MessageLog;
 struct MessageLogEntry;
+struct Meteor;
 struct MineGroupImpl;
 struct MineManager;
 struct MiniMap;
@@ -145,6 +158,7 @@ struct MissionManager;
 struct MissionResults;
 struct ModDesc;
 struct ModDescEx;
+struct MoraleLevelModifier;
 struct MoraleManager;
 struct MoraleModifier;
 struct MoraleState;
@@ -201,6 +215,7 @@ struct PlayerUnitEnumBase;
 struct PlayerUnitIterator;
 struct POINT;
 struct ProduceCommand;
+struct Projectile;
 struct ProtocolControlMapping;
 struct PWDef;
 struct QuitCommand;
@@ -227,18 +242,23 @@ struct Rgb555;
 struct Rgb555___anon_;
 struct RLERStream;
 struct RLEWStream;
+struct RoboDozer;
+struct RoboMiner;
+struct Rocket;
 struct SalvageCommand;
 struct SatelliteCounts;
 struct SaveGameDialog;
 struct SaveRegion;
 struct ScanlineCopyInfo;
 struct ScBase;
+struct ScBaseLinkedListInfo;
 struct ScGroupImpl;
+struct Scout;
 struct ScriptDataBlock;
+struct ScStrategyImpl;
 struct ScStub;
 struct ScStubFactory;
 struct ScStubList;
-struct Sheet;
 struct SheetParser;
 struct SimpleCommand;
 struct SingleUnitSimpleCommand;
@@ -276,10 +296,7 @@ struct TransferCommand;
 struct TransportLayerHeader;
 struct TransportLayerMessage;
 struct TriggerImpl;
-struct TruckCargo;
 struct TruckLoadData;
-struct TubeConnection;
-struct TubeConnectionManager;
 struct UIButton;
 struct UICommandButton;
 struct UIElement;
@@ -311,8 +328,12 @@ struct WplInfo;
 struct Wreckage;
 struct YieldPercentData;
 
+struct FilterUnitIteratorBase {  // base: UnitIterator
+  MapID type_;
+};
+
 struct AreaIteratorBase {  // base: OP2Class<Iterator>
-  MapObject* pCurrentUnit_;
+  MapObject* pMo_;
   int field_04;
   int field_08;
   int field_0C;
@@ -327,16 +348,20 @@ struct AreaIteratorBase {  // base: OP2Class<Iterator>
   int field_30;
 };
 
+struct GlobalUnitIterator {  // base: TethysImpl::UnitIteratorBase
+  MapObject* pMo_;
+};
+
 struct PlayerUnitIterator {  // base: TethysImpl::UnitIteratorBase
   MapObject* pMo_;
 };
 
-struct FilterPlayerUnitIterator {  // base: PlayerUnitIterator
+struct PlayerUnitEnumBase {
+  int playerNum_;
   MapID type_;
 };
 
-struct PlayerUnitEnumBase {
-  int playerNum_;
+struct GlobalUnitEnum {
   MapID type_;
 };
 
@@ -412,13 +437,7 @@ struct ModDesc {
 
 struct ModDescEx {
   int numMultiplayerAIs;
-  int field_04;
-  int field_08;
-  int field_0C;
-  int field_10;
-  int field_14;
-  int field_18;
-  int field_1C;
+  int reserved[7];
 };
 
 struct SaveRegion {
@@ -513,16 +532,6 @@ struct OnTriggerArgs {
   PlayerBitmask prevTriggeredBy;
 };
 
-struct CargoKit {
-  MapID unitType;
-  MapID cargoOrWeaponType;
-};
-
-struct TruckCargo {
-  CargoType cargoType;
-  int amount;
-};
-
 struct Unit {  // base: OP2Class<Unit>
   int id_;
 };
@@ -615,9 +624,10 @@ struct GUID {
 
 struct BlightManager {  // base: OP2Class<BlightManager>
   int currentPosition_;
-  int field_08;
-  int field_0C;
+  int directionToggle_;
+  int reservedSyncValue_;
   int spreadSpeed_;
+  std::uint32_t virMask_[512];  // off~0x4A8AEC
 };
 
 struct PlayerBitmaskImpl___anon_ {
@@ -837,12 +847,7 @@ struct GameImpl {  // base: OP2Class<GameImpl>
   int fastProduction_;
   int showUnitPaths_;
   int allUnitsVisible_;
-  int field_20;
-  int field_24;
-  int field_28;
-  int field_2C;
-  int field_30;
-  int field_34;
+  int unusedDebugFlags_[6];
   int forceDisableRCC_;
   int forceEnableRCC_;
   int dataChecking_;
@@ -859,14 +864,14 @@ struct GameImpl {  // base: OP2Class<GameImpl>
   int commandPacketProcessingDelay_;
   int tick_;
   int tickOfLastSetGameOpt_;
-  int field_8C;
+  int santaActive_;
   int localPlayer_;
   PlayerBitmask chatDstMask_;
   int startFadeOutTick_;
   GameTermReasons gameTermReasons_;
   int skipProgressSave_;
-  GameStartInfo gameStartInfo_;
-  int field_160[201];
+  MissionResults gameStartInfo_;  // off~0x489818
+  std::uint8_t field_481[3];
   PlayerImpl player_[MaxPlayers];
   GameNetLayer* pGameNetLayer_;
 };
@@ -874,7 +879,7 @@ struct GameImpl {  // base: OP2Class<GameImpl>
 struct StartupFlags {
   std::uint32_t disastersEnabled : 1;
   std::uint32_t dayNightEnabled : 1;
-  std::uint32_t moraleSteady : 1;     // SET = morale is locked steady (not used); "uses morale" == !moraleSteady (OPU RE - was moraleEnabled, which had the sense backwards)
+  std::uint32_t moraleSteady : 1;
   std::uint32_t isCampaign : 1;
   std::uint32_t isMultiplayer : 1;
   std::uint32_t cheatsEnabled : 1;
@@ -984,6 +989,14 @@ struct MissionResults {  // base: GameStartInfo  (size=989)
   // static_assert(sizeof(MissionResults) == 989);  // verify after completing fields
 };
 
+struct HiveManager {  // base: OP2Class<HiveManager>
+  int field_00;
+};
+
+struct Hive {  // base: OP2Class<Hive>
+  int field_00;
+};
+
 struct TileData___anon_ {
   std::uint32_t cellType : 5;
   std::uint32_t tileIndex : 11;
@@ -1000,11 +1013,11 @@ struct TileData {
 };
 
 struct CellTypeInfo {
-  char* pName;                     // @0x00
-  // trackSpeed[TrackType::Count] occupies 0x04..0x18 (per-track-type move speed; not broken out here yet)
-  int   blocksLineOfSight;         // @0x18  ibool - does this terrain block line of sight?  (decoded via OPU RE; was field_18)
-  int   blightSpeed;               // @0x1C
-  int   minimapTopographicColor;   // @0x20  Rgb555 - topographic color on the minimap        (decoded via OPU RE; was field_20)
+  char* pName;
+  int blocksLineOfSight;
+  int blightSpeed;
+  Rgb555 minimapTopographicColor;
+  std::uint16_t field_22;
 };
 
 struct TilesetMapping {
@@ -1045,9 +1058,9 @@ struct TerrainType {  (size=264)
   ConnectedTileMapping wallLightDamage;
   ConnectedTileMapping wallHeavyDamage;
   std::uint16_t lavaStart;
-  std::uint16_t field_B6;
-  std::uint16_t field_B8;
-  std::uint16_t field_BA;
+  std::uint16_t lavaAnimationLength;
+  std::uint16_t lavaCenterAnimationLength;
+  std::uint16_t lavaNumCenterTiles;
   ConnectedTileMapping tube;
   } scorched[1];
   int field_EA[7];
@@ -1067,9 +1080,9 @@ struct TerrainType___anon____anon_ {
 struct TerrainManager {  // base: OP2Class<TerrainManager>
   int numTilesetMappings_;
   TilesetMapping* pTilesetMappings_;
-  int field_08;
+  uint32* pMiniMapTileColors_;
   int numTerrainTypes_;
-  TerrainType* pTerrainTypes_;
+  TerrainType* pTerrainTypes_[12];
 };
 
 struct DayNightManager {  // base: OP2Class<DayNightManager>
@@ -1083,7 +1096,7 @@ struct DayNightManager {  // base: OP2Class<DayNightManager>
 };
 
 struct MapImpl {  // base: OP2Class<MapImpl>  (size=1136)
-  int field_00;
+  GFXClippedSurface* pDrawSurface_;
   std::uint32_t pixelWidthMask_;
   int pixelWidth_;
   std::uint32_t tileXMask_;
@@ -1104,12 +1117,22 @@ struct MapImpl {  // base: OP2Class<MapImpl>  (size=1136)
   MapObject* pMapObjListBegin_;
   MapObject* pMapObjListEnd_;
   std::uint8_t lightLevelAdjustTable_[1024];
-  std::uint32_t field_45C;
+  std::uint32_t lightLevelMax_;
   char** pTilesetNames_;
   TileData* pTileArray_;
   GFXTilesetBitmap** ppTilesetBitmaps_;
   TerrainManager* pTerrainManager_;
   // static_assert(sizeof(MapImpl) == 1136);  // verify after completing fields
+};
+
+struct Cargo___anon____anon_ {
+  MapID weaponCargo;
+  std::uint32_t reserved;
+};
+
+struct Cargo___anon_ {
+  TruckCargo truckCargo;
+  CargoKit cargoKit;
 };
 
 struct MapObject {  // base: OP2Class<MapObject>  (size=72)
@@ -1126,14 +1149,14 @@ struct MapObject {  // base: OP2Class<MapObject>  (size=72)
   ActionType action_;
   ActionType executingAction_;
   std::uint16_t attackingUnitIndex_;
-  int field_28;
+  int lastAttackedTick_;
   std::uint8_t unitTypeInstanceNum_;
-  std::uint8_t field_2D;
+  std::uint8_t turretRotation_;
   std::uint16_t reloadTimer_;
   std::uint8_t scGroupIndex_;
-  std::uint8_t field_31;
-  std::uint8_t field_32;
-  std::uint8_t field_33;
+  std::uint8_t groupNodeIndex_;
+  std::uint8_t targetedByCount_;
+  std::uint8_t frameIndexRelated_;
   int actionTimer_;
   std::uint16_t animationIndex_;
   std::int16_t frameIndex_;
@@ -1159,7 +1182,7 @@ struct MapObject___anon_ {
   int targetPixelX_;
   std::uint16_t weapon_;
   std::uint16_t tubeOrWallType_;
-  TubeConnection* pTubeConnection_;
+  Hive* pHive_;
   std::uint16_t researchTimer_;
   std::uint16_t disasterDuration_;
   std::uint16_t disasterMagnitude_;
@@ -1169,8 +1192,23 @@ struct MapObject___anon_ {
 struct MapChildEntity {  // base: MapEntity
   int parentIndex_;
   CommandTarget target_;  // off~0xFFFF0000
+  int field_50;  // off~0x48
+  int isAnimated_;
+};
+
+struct Rocket {  // base: MapEntity
+  int field_48;  // off~0x48
+  int field_4C;
   int field_50;
-  int field_54;
+};
+
+struct Projectile {  // base: MapChildEntity
+  std::uint16_t field_58;
+  std::uint16_t field_5A;
+  int field_5C;
+  int field_60;
+  int field_64;
+  int field_68;
 };
 
 struct Building {  // base: LandUnit
@@ -1180,15 +1218,15 @@ struct Building {  // base: LandUnit
   std::uint16_t field_54;
   std::uint16_t timerEMP_;
   int field_58;
-  int field_5C;
+  int developTime_;
 };
 
 struct FactoryBuilding {  // base: Building
   std::uint8_t itemToProduce_;
   std::uint8_t cargoBayContents_[6];
   std::uint8_t field_67;
-  int field_68;
-  std::uint16_t field_6C;
+  int productionTime_;
+  std::uint16_t scStubIndex_;
 };
 
 struct Vehicle___anon_ {
@@ -1206,25 +1244,41 @@ struct Vehicle {  // base: LandUnit
   std::uint16_t timerESG_;
   std::uint16_t field_5A;
   int cargoToLoad_;
-  std::uint16_t field_60;
-  std::uint16_t field_62;
-  int field_64;
-  int field_68;
-  std::uint16_t field_6C;
-  int field_6E;
-  int field_72;
+  std::uint16_t effectStartTick_;
+};
+
+struct Earthquake {  // base: Disaster
+  int field_48;  // off~0x48
+  int field_4C;
+  int field_50;
+  int strength_;
+  int duration_;
+};
+
+struct Eruption {  // base: Disaster
+  int field_48;  // off~0x48
+  int field_4C;
+  int field_50;
 };
 
 struct Lightning {  // base: Disaster
   int field_48;
   int field_4C;
   int field_50;
-  int field_54;
-  int field_58;
+  int strikeStartTick_;
+  int nextStrikeTick_;
   int field_5C;
   int field_60;
   std::uint16_t endTileX_;
   std::uint16_t endTileY_;
+};
+
+struct Meteor {  // base: Disaster
+  int field_48;  // off~0x48
+  int field_4C;
+  int field_50;
+  int animStartTick_;
+  int interceptorUnitIndex_;
 };
 
 struct Vortex {  // base: Disaster
@@ -1234,16 +1288,13 @@ struct Vortex {  // base: Disaster
   std::uint8_t field_51;
   std::uint8_t field_52;
   std::uint8_t field_53;
-  int field_54;
-  std::uint8_t field_58;
-  std::uint8_t field_59;
-  std::uint8_t field_5A;
-  std::uint8_t field_5B;
-  std::uint8_t field_5C;
-  std::uint16_t field_5D;
-  std::uint16_t field_5F;
-  std::uint16_t field_61;
-  std::uint16_t field_63;
+  int startTick_;
+  int effectAnimStartTick_;
+  std::uint8_t heading_;
+  std::uint16_t subPixelX_;
+  std::uint16_t subPixelY_;
+  std::uint16_t tileX_;
+  std::uint16_t tileY_;
   std::uint16_t endTileX_;
   std::uint16_t endTileY_;
 };
@@ -1266,13 +1317,60 @@ struct Wreckage {  // base: MapChildEntity
   int techID_;
 };
 
+struct ESG {  // base: Projectile
+  PackedPlayerBitmask sourcePlayerMask_;
+  std::uint8_t field_6D;
+  PackedPlayerBitmask playerMask_;
+  std::uint8_t field_6F;
+};
+
 struct Garage {  // base: Building
   MapObject* pUnitInBay_[6];
 };
 
 struct Spaceport {  // base: FactoryBuilding
   MapID objectOnPad_;
-  MapID launchCargo_;
+  std::uint16_t launchCargo_;
+  std::uint16_t isRLVLanded_;
+};
+
+struct CargoTruck {  // base: Vehicle
+  PackedMapRect workRect_;
+  std::uint8_t field_6A[2];
+  std::uint8_t workDirectionFlags_;
+  std::uint8_t isLoadingCargo_;
+};
+
+struct ConVec {  // base: Vehicle
+  PackedMapRect buildArea_;
+  std::int16_t scStubIndex_;
+};
+
+struct Earthworker {  // base: Vehicle
+  PackedMapRect workRect_;
+  std::uint8_t field_6A[2];
+  std::int16_t wallTileX_;
+  std::int16_t wallTileY_;
+  std::uint8_t wallFlags_;
+};
+
+struct GeoCon {  // base: Vehicle
+  PackedMapRect buildArea_;
+  std::int16_t scStubIndex_;
+};
+
+struct RoboDozer {  // base: Vehicle
+  PackedMapRect workRect_;
+  std::uint8_t dozeFlags_;
+};
+
+struct RoboMiner {  // base: Vehicle
+  PackedMapRect buildArea_;
+  std::int16_t scStubIndex_;
+};
+
+struct Scout {  // base: Vehicle
+  std::int16_t isEnemySighted_;
 };
 
 struct AnyMapObj {
@@ -1371,7 +1469,7 @@ struct GlobalUnitStats {
 struct MapObjectType {  // base: OP2Class<MapObjectType>
   MapID type_;
   PerPlayerUnitStats playerStats_[7];
-  int requiredTechNum_;             // required tech NUMBER to build this type (was requiredTechID_; OPU RE)
+  int requiredTechNum_;
   TrackType trackType_;
   int field_1EC;
   SoundID selectSoundID_;
@@ -1421,12 +1519,22 @@ struct MissionManager {  // base: OP2Class<MissionManager>
 
 struct MoraleModifier {
   char* pName;
-  int field_04;
-  int field_08;
+  int value;
+  int shouldBeScaled;
+};
+
+struct MoraleLevelModifier {
+  char name[16];
 };
 
 struct MoraleManager {  // base: OP2Class<MoraleManager>
-  int field_00;
+  MoraleLevelModifier levelModifiers_[5];
+  int sumOfBestBaseModifiers_;
+  int sumOfMedCenterModifiers_;
+  int sumOfForumModifiers_;
+  int sumOfRecCenterModifiers_;
+  int sumOfDirtModifiers_;
+  int maxConditionMorale_;
 };
 
 struct LongWaypoint {
@@ -1443,6 +1551,8 @@ struct PathFinder {
   int sqDistance_;
   int rangeTileX_;
   int rangeTileY_;
+  int aStarGoalTileX_;
+  int aStarGoalTileY_;
 };
 
 struct PathContext___anon_ {
@@ -1459,32 +1569,32 @@ struct PathContext {  (size=512)
   std::uint32_t flags;
   PathContext* pNextDestination;
   int field_3C;
-  int field_40;
+  int numUnitsDiv8Plus1;
   std::uint16_t numPixelsMovedX;
   std::uint16_t numPixelsMovedY;
   int startPixelX;
   int startPixelY;
   int dstTileX;
   int dstTileY;
-  std::uint16_t field_58;
+  std::uint16_t pixelsMovedY;
   std::uint16_t numPixelsToMoveX;
-  std::uint16_t field_5C;
+  std::uint16_t pixelsTurned;
   std::uint16_t numPixelsToMoveY;
   int rotationSpeed;
-  int field_64;
-  int field_68;
-  int field_6C;
-  int field_70;
+  int remainingStepsToCrossTile;
+  int remainingStepsToTurn;
+  int tryBumpCount;
+  int randRange;
   int numPathfinderPoints;
   int currentPathfinderPoint;
   std::uint8_t direction[64];
-  int field_BC;
-  int field_C0;
-  int field_C4;
-  int field_C8;
-  int field_CC;
+  int packedRouteLength;
+  int packedRouteCursor;
+  int cursorTileX;
+  int cursorTileY;
+  int costMode;
   int distance;
-  std::uint8_t field_D4[0x200 - 0xD4];
+  std::uint8_t packedRoute[300];
   // static_assert(sizeof(PathContext) == 512);  // verify after completing fields
 };
 
@@ -1630,12 +1740,17 @@ struct Research {  // base: OP2Class<Research>
   int numTechs_;
   TechInfo** ppTechInfos_;
   int maxTechID_;
+  int field_0C;
   int field_10;
   int field_14;
   int field_18;
   int field_1C;
   int field_20;
   int field_24;
+  int field_28;
+  int numAvailableTopics_;
+  int* pAvailableTopics_;
+  int availableTopicsCategory_;
 };
 
 struct ScStubList {  // base: OP2Class<ScStubList>
@@ -1643,36 +1758,39 @@ struct ScStubList {  // base: OP2Class<ScStubList>
   ScBase* pScStubArray_[MaxNumScStubs];
 };
 
-struct ScStubFactory {
+struct ScBaseLinkedListInfo {
+  ScBase* pPrev;
+  ScBase* pNext;
+};
+
+struct ScStubFactory {  // base: OP2Class<ScStubFactory>
   ScStubFactory* pParent_;
   const char* pName_;
   std::uint32_t elementSizeInBytes_;
+  ScBase* pLinkedListHead_;
+  int creatorIndex_;
 };
 
 struct ScBase {  // base: OP2Class<ScBase>
   int index_;
   int isEnabled_;
-  int field_0C;
-  int field_10;
+  ScBaseLinkedListInfo linkedListInfo_;
 };
 
 struct ScriptDataBlock {  // base: ScBase
-  int field_14;
-  int field_18;
+  ScBaseLinkedListInfo dataBlockListInfo_;
   int useLevelModule_;
   char* pFuncName_;
 };
 
 struct FuncReference {  // base: ScriptDataBlock
-  int field_28;
-  int field_2C;
+  ScBaseLinkedListInfo funcRefListInfo_;  // off~0x4758F0
 };
 
 struct TriggerImpl {  // base: ScBase
-  int field_14;
-  TriggerImpl* pNext_;
+  ScBaseLinkedListInfo triggerListInfo_;
   int isOneShot_;
-  PlayerBitmask playerVectorHasFired_;
+  PlayerBitmask hasFired_;
   FuncReference* pFuncRef_;
 };
 
@@ -1695,7 +1813,7 @@ struct TargetCount {  (size=20)
   UnitTypeTargetCount* pUnitTypeTargetCounts_;
   int groupScStubIndex_;
   int numUnitTypeTargetCounts_;
-  int field_10;
+  int needsRecount_;
   // static_assert(sizeof(TargetCount) == 20);  // verify after completing fields
 };
 
@@ -1712,10 +1830,9 @@ struct UnitNode {
 };
 
 struct ScGroupImpl {  // base: ScBase
-  int field_14;
-  int field_18;
+  ScBaseLinkedListInfo groupListInfo_;  // off~0x42B100
   int lastFreeUnitNodeIndex_;
-  int field_20;
+  int numNodesAllocated_;
   UnitNode unitNode_[32];
   TargetCount* pTargetCount_;
   UnitNode* pUnitListHead_;
@@ -1724,8 +1841,6 @@ struct ScGroupImpl {  // base: ScBase
   int ownerPlayerNum_;
   int deleteWhenEmptyTick_;
   int setLights_;
-  int field_300;
-  int field_304;
 };
 
 struct RecordedBuilding {
@@ -1769,6 +1884,7 @@ struct RecordInfo {
 };
 
 struct BuildingGroupImpl {  // base: ScGroupImpl
+  ScBaseLinkedListInfo buildingGroupListInfo_;  // off~0x424BA0
   int numAllocatedRecordedBuildings_;
   RecordedBuilding* pRecordedBuildings_;
   int numAllocatedRecordedMines_;
@@ -1781,11 +1897,12 @@ struct BuildingGroupImpl {  // base: ScGroupImpl
 };
 
 struct FightGroupImpl {  // base: ScGroupImpl  (size=1000)
+  ScBaseLinkedListInfo fightGroupListInfo_;  // off~0x428250
   int combineFire_;
   int combineFireUnitIndex_;
-  int field_310;  // off~0xFFF00000
+  int lastTargetPickTick_;  // off~0xFFF00000
   int numWaypoints_;
-  int field_318;
+  int patrolParam_;
   Waypoint waypointList_[8];
   int patrolMode_;
   int followMode_;
@@ -1795,11 +1912,12 @@ struct FightGroupImpl {  // base: ScGroupImpl  (size=1000)
   int targetUnitIndex_;
   int numGuardedRects_;
   RECT guardedRect_[8];
-  int field_3E4;
+  int action_;
   // static_assert(sizeof(FightGroupImpl) == 1000);  // verify after completing fields
 };
 
 struct MineGroupImpl {  // base: ScGroupImpl
+  ScBaseLinkedListInfo mineGroupListInfo_;  // off~0x429970
   int mineUnitIndex_;
   int smelterUnitIndex_;
   int minePixelX_;
@@ -1811,20 +1929,23 @@ struct MineGroupImpl {  // base: ScGroupImpl
   RECT mineGroupPixelRect_;
 };
 
-struct Sheet {  // base: OP2Class<Sheet>
-  int field_00;
-  int field_04;
-};
-
-struct GameVersion___anon_ {
-  std::uint8_t stepping;
-  std::uint8_t unused;
-  std::uint8_t minor;
-  std::uint8_t major;
+struct ScStrategyImpl {  // base: ScBase
+  ScBaseLinkedListInfo strategyListInfo_;
 };
 
 struct GameVersion {
-  std::uint32_t version;
+  std::uint32_t stepping : 8;
+  std::uint32_t unused : 8;
+  std::uint32_t minor : 8;
+  std::uint32_t major : 8;
+};
+
+struct GameIdentifier {
+  GUID guid;
+  std::uint8_t u8[16];
+  std::uint16_t u16[8];
+  std::uint32_t u32[4];
+  std::uint64_t u64[2];
 };
 
 struct TApp {  // base: OP2Class<TApp>  (size=396)
@@ -1833,9 +1954,9 @@ struct TApp {  // base: OP2Class<TApp>  (size=396)
   int nShowCmd_;
   int bShowShell_;
   char* pSavedGameName_;
-  int field_14;
+  int cmdLog_;
   int playback_;
-  int field_1C;
+  int playbackView_;
   char* pNetProtocolName_;
   MSG msg_;
   HHOOK hHelpHook_;
@@ -1860,14 +1981,6 @@ struct TApp {  // base: OP2Class<TApp>  (size=396)
   // static_assert(sizeof(TApp) == 396);  // verify after completing fields
 };
 
-struct TubeConnectionManager {  // base: OP2Class<TubeConnectionManager>
-  int field_00;
-};
-
-struct TubeConnection {  // base: OP2Class<TubeConnection>
-  int field_00;
-};
-
 struct UnitGroup {  // base: OP2Class<UnitGroup>  (size=132)
   int numUnits_;
   int unitIndex_[32];
@@ -1878,6 +1991,281 @@ struct PackedUnitGroup {  (size=65)
   std::uint8_t numUnits;
   std::uint16_t unitIndex[32];
   // static_assert(sizeof(PackedUnitGroup) == 65);  // verify after completing fields
+};
+
+struct GFXBitmap {  // base: OP2Class<GFXBitmap>
+  int width_;
+  int height_;
+  int pitch_;
+  int bpp_;
+  int imageBufferSize_;
+  int attributes_;
+};
+
+struct GFXLightAdjustedBitmap {  // base: GFXBitmap
+  int numLightLevels_;
+  int field_24;
+  int drawMethod_;
+  std::uint8_t mappedPlayerColorIndex_[NumLightLevels];
+  int field_50;
+  int field_D4;
+  int field_D8;
+};
+
+struct GFXTilesetBitmap {  // base: GFXLightAdjustedBitmap
+  int numTiles_;
+  int numTilesRequested_;
+  int field_E4;
+  int field_E8;
+  int tileHeight_;
+  int tilesetHeight_;
+  int bytesPerTile_;
+  uint8* pPixelData_;
+};
+
+struct GFXSpriteBitmap {  // base: GFXLightAdjustedBitmap
+  uint8* pBmpFileData_;
+  int fileSize_;
+  uint8* pPixelData_;
+  int field_F0;
+  int field_F4;
+  int field_F8;
+};
+
+struct WplInfo {
+  std::uint32_t structSize;
+  std::uint32_t structSize;
+  std::uint32_t field_04;
+  std::uint32_t field_04;
+  HINSTANCE hAppInst;
+  HINSTANCE hAppInst;
+  HINSTANCE hResDllInst;
+  HINSTANCE hResDllInst;
+  std::uint32_t startResId;
+  std::uint32_t startResId;
+  std::uint32_t field_14;
+  std::uint32_t field_14;
+  std::uint32_t field_18;
+  std::uint32_t field_18;
+  std::uint32_t field_1C;
+  std::uint32_t field_1C;
+  std::uint32_t field_20[7];
+  std::uint32_t field_20[7];
+};
+
+struct Rgb555___anon_ {
+  std::uint16_t b : 5;
+  std::uint16_t g : 5;
+  std::uint16_t r : 5;
+  std::uint16_t a : 1;
+};
+
+struct Rgb555 {
+  std::uint16_t u16All;
+};
+
+struct GFXPalette {  // base: OP2Class<GFXPalette>  (size=1108)
+  int version_;
+  int numColors_;
+  int colors_[256];
+  int field_404;
+  int field_408;
+  int field_40C;
+  int field_410;
+  int field_414;
+  int field_418;
+  int field_41C;
+  int field_420;
+  int field_424;
+  int field_428;
+  int field_42C;
+  int field_430;
+  int field_434;
+  int field_438;
+  int field_43C;
+  int field_440;
+  int field_444;
+  int field_448;
+  int field_44C;
+  // static_assert(sizeof(GFXPalette) == 1108);  // verify after completing fields
+};
+
+struct ImageInfo {
+  int scanlineByteWidth;
+  int dataOffset;
+  int height;
+  int width;
+  std::uint16_t typeFlags;
+  std::uint16_t paletteIndex;
+};
+
+struct FrameComponentInfo {
+  std::uint16_t pixelXOffset;
+  std::uint16_t pixelYOffset;
+  std::uint16_t imageIndex;
+};
+
+struct FrameOptionalInfo {
+  std::int8_t offsetX;
+  std::int8_t offsetY;
+  std::int8_t offsetX2;
+  std::int8_t offsetY2;
+};
+
+struct FrameInfo___anon_ {
+  std::uint16_t left;  // off~0x7FFE
+  std::uint16_t top;
+  std::uint16_t right;
+  std::uint16_t bottom;
+};
+
+struct FrameInfo {  (size=14)
+  } rect;
+  std::uint16_t numFrameComponents;
+  FrameComponentInfo* pFrameComponent;
+  // static_assert(sizeof(FrameInfo) == 14);  // verify after completing fields
+};
+
+struct AnimationInfo {  (size=112)
+  int field_00;
+  RECT selectionBox;
+  int pixelXDisplacement;
+  int pixelYDisplacement;
+  int field_1C;
+  int numFrames;
+  FrameInfo* pFrameInfo;
+  std::uint16_t frameOptionalInfoStartIndex;
+  std::uint8_t padding[112 - 42];
+  // static_assert(sizeof(AnimationInfo) == 112);  // verify after completing fields
+};
+
+struct SpriteManager {  // base: OP2Class<SpriteManager>
+  uint8* pPaletteData_;
+  int paletteSize_;
+  ImageInfo imageInfo_[MaxNumImages];
+  int numImages_;
+  AnimationInfo animationInfo_[MaxNumAnimations];
+  int numAnimations_;
+  GFXSpriteBitmap* pBitmap_;
+  FrameInfo** ppFrameInfo_;
+  FrameComponentInfo** ppFrameComponentInfo_;
+  FrameOptionalInfo** ppFrameOptionalInfo_;
+};
+
+struct GFXSurface {  // base: OP2Class<GFXSurface>  (size=120)
+  int field_04;
+  int field_08;
+  int field_0C;
+  int maxX_;
+  int maxY_;
+  int field_18;
+  int field_1C;
+  int field_20;
+  int field_24;
+  int field_28;
+  int field_2C;
+  int field_30;
+  int pitch_;
+  int width_;
+  int height_;
+  int bpp_;
+  int field_48;
+  int field_4C;
+  int field_50;
+  int field_54;
+  int field_58;
+  int surfaceType_;
+  int field_60;
+  int lockCount_;
+  int field_68;
+  HDC hLockedDC_;
+  int field_70;
+  int field_74;
+  // static_assert(sizeof(GFXSurface) == 120);  // verify after completing fields
+};
+
+struct GFXCDSSurface {  // base: GFXSurface  (size=152)
+  HBITMAP hDibSection_;
+  HDC hWindowDC_;
+  HDC hMemoryDC_;
+  HPALETTE hPalette_;
+  HPALETTE hOldPalette_;
+  HBITMAP hOldDibSection_;
+  HWND hDstWnd_;
+  // static_assert(sizeof(GFXCDSSurface) == 152);  // verify after completing fields
+};
+
+struct GFXMemSurface {  // base: GFXSurface  (size=128)
+  int isBitmapOwned_;
+  // static_assert(sizeof(GFXMemSurface) == 128);  // verify after completing fields
+};
+
+struct Viewport {  // base: OP2Class<Viewport>  (size=2124)
+  int drawingEnabled_;
+  int redrawBitVectorLineWidth_;
+  std::uint32_t redrawBitVectorSize_;
+  int scrollY_;
+  int scrollX_;
+  int height_;
+  int width_;
+  int field_1C;
+  int lightUpdateTileX_;
+  RECT relativeTileRect_;
+  std::uint32_t redrawBitVector_[100];
+  std::uint32_t oldRedrawBitVector_[100];
+  std::uint32_t unknownBitVector_[100];
+  std::uint32_t lightBitVector_[100];
+  std::uint32_t oldLightBitVector_[100];
+  int totalBackgroundRedraw_;
+  int maxTileX_;
+  int maxTileY_;
+  int oldPixelX_;
+  int oldPixelY_;
+  int pixelX_;
+  int pixelY_;
+  int tileStartPixelOffsetX_;
+  int tileStartPixelOffsetY_;
+  int tileX_;
+  int tileY_;
+  int field_848;
+  // static_assert(sizeof(Viewport) == 2124);  // verify after completing fields
+};
+
+struct GFXClippedSurface {  // base: GFXCDSSurface  (size=2396)
+  int field_98;
+  int field_9C;
+  int field_A0;
+  int field_A4;
+  int field_A8;
+  int field_AC;
+  RECT drawRect_;
+  int screenRequiresUpdate_;
+  int markBackgroundOnRedraw_;
+  BITMAPINFO bitmapInfo_;
+  BITMAPINFO* pBitmapInfo_;
+  RECT redrawRect_;
+  int field_108;
+  int zoom_;
+  Viewport viewport_;
+  // static_assert(sizeof(GFXClippedSurface) == 2396);  // verify after completing fields
+};
+
+struct BitmapCopyInfo {
+  int overlayBitOffset;
+  int srcWidth;
+  int srcHeight;
+  int srcPitch;
+  int dstPitch;
+  int drawMethod;
+  uint16* pDarkPal16;
+  int blightOverlay;
+  uint16* pLightPal16;
+};
+
+struct ScanlineCopyInfo {
+  uint16* pPalette;
+  int field_08;
+  int width;
 };
 
 struct PlayerGurInfo {
@@ -2219,225 +2607,12 @@ struct RenderData {  // base: RenderDataBase
   RenderChunk renderChunk[N];
 };
 
-struct GFXBitmap {  // base: OP2Class<GFXBitmap>
-  int width_;
-  int height_;
-  int pitch_;
-  int bpp_;
-  int imageBufferSize_;
-  int attributes_;
-};
-
-struct GFXLightAdjustedBitmap {  // base: GFXBitmap
-  int numLightLevels_;
-  int field_24;
-  int drawMethod_;
-  std::uint8_t mappedPlayerColorIndex_[NumLightLevels];
-  int field_50;
-  int field_D4;
-  int field_D8;
-};
-
-struct GFXTilesetBitmap {  // base: GFXLightAdjustedBitmap
-  int numTiles_;
-  int numTilesRequested_;
-  int field_E4;
-  int field_E8;
-  int tileHeight_;
-  int tilesetHeight_;
-  int bytesPerTile_;
-  uint8* pPixelData_;
-};
-
-struct GFXSpriteBitmap {  // base: GFXLightAdjustedBitmap
-  uint8* pBmpFileData_;
-  int fileSize_;
-  uint8* pPixelData_;
-  int field_F0;
-  int field_F4;
-  int field_F8;
-};
-
-struct Rgb555___anon_ {
-  std::uint16_t b : 5;
-  std::uint16_t g : 5;
-  std::uint16_t r : 5;
-  std::uint16_t a : 1;
-};
-
-struct Rgb555 {
-  std::uint16_t u16All;
-};
-
-struct GFXPalette {  // base: OP2Class<GFXPalette>  (size=1108)
-  int version_;
-  int numColors_;
-  int colors_[256];
-  int field_404;
-  int field_408;
-  int field_40C;
-  int field_410;
-  int field_414;
-  int field_418;
-  int field_41C;
-  int field_420;
-  int field_424;
-  int field_428;
-  int field_42C;
-  int field_430;
-  int field_434;
-  int field_438;
-  int field_43C;
-  int field_440;
-  int field_444;
-  int field_448;
-  int field_44C;
-  // static_assert(sizeof(GFXPalette) == 1108);  // verify after completing fields
-};
-
-struct GFXSurface {  // base: OP2Class<GFXSurface>  (size=120)
-  int field_04;
-  int field_08;
-  int field_0C;
-  int maxX_;
-  int maxY_;
-  int field_18;
-  int field_1C;
-  int field_20;
-  int field_24;
-  int field_28;
-  int field_2C;
-  int field_30;
-  int pitch_;
-  int width_;
-  int height_;
-  int bpp_;
-  int field_48;
-  int field_4C;
-  int field_50;
-  int field_54;
-  int field_58;
-  int surfaceType_;
-  int field_60;
-  int lockCount_;
-  int field_68;
-  HDC hLockedDC_;
-  int field_70;
-  int field_74;
-  // static_assert(sizeof(GFXSurface) == 120);  // verify after completing fields
-};
-
-struct GFXCDSSurface {  // base: GFXSurface  (size=152)
-  HBITMAP hDibSection_;
-  HDC hWindowDC_;
-  HDC hMemoryDC_;
-  HPALETTE hPalette_;
-  HPALETTE hOldPalette_;
-  HBITMAP hOldDibSection_;
-  HWND hDstWnd_;
-  // static_assert(sizeof(GFXCDSSurface) == 152);  // verify after completing fields
-};
-
-struct GFXMemSurface {  // base: GFXSurface  (size=128)
-  int isBitmapOwned_;
-  // static_assert(sizeof(GFXMemSurface) == 128);  // verify after completing fields
-};
-
-struct Viewport {  // base: OP2Class<Viewport>  (size=2124)
-  int drawingEnabled_;
-  int redrawBitVectorLineWidth_;
-  std::uint32_t redrawBitVectorSize_;
-  int scrollY_;
-  int scrollX_;
-  int height_;
-  int width_;
-  int field_1C;
-  int lightUpdateTileX_;
-  RECT relativeTileRect_;
-  std::uint32_t redrawBitVector_[100];
-  std::uint32_t oldRedrawBitVector_[100];
-  std::uint32_t unknownBitVector_[100];
-  std::uint32_t lightBitVector_[100];
-  std::uint32_t oldLightBitVector_[100];
-  int totalBackgroundRedraw_;
-  int maxTileX_;
-  int maxTileY_;
-  int oldPixelX_;
-  int oldPixelY_;
-  int pixelX_;
-  int pixelY_;
-  int tileStartPixelOffsetX_;
-  int tileStartPixelOffsetY_;
-  int tileX_;
-  int tileY_;
-  int field_848;
-  // static_assert(sizeof(Viewport) == 2124);  // verify after completing fields
-};
-
-struct GFXClippedSurface {  // base: GFXCDSSurface  (size=2396)
-  int field_98;
-  int field_9C;
-  int field_A0;
-  int field_A4;
-  int field_A8;
-  int field_AC;
-  RECT drawRect_;
-  int screenRequiresUpdate_;
-  int markBackgroundOnRedraw_;
-  BITMAPINFO bitmapInfo_;
-  BITMAPINFO* pBitmapInfo_;
-  RECT redrawRect_;
-  int field_108;
-  int zoom_;
-  Viewport viewport_;
-  // static_assert(sizeof(GFXClippedSurface) == 2396);  // verify after completing fields
-};
-
-struct BitmapCopyInfo {
-  int overlayBitOffset;
-  int srcWidth;
-  int srcHeight;
-  int srcPitch;
-  int dstPitch;
-  int drawMethod;
-  uint16* pDarkPal16;
-  int blightOverlay;
-  uint16* pLightPal16;
-};
-
-struct ScanlineCopyInfo {
-  uint16* pPalette;
-  int field_08;
-  int width;
-};
-
 struct MemoryMappedFile {  // base: OP2Class<MemoryMappedFile>
   HANDLE hFile_;
   size_t size_;
   HANDLE hObject_;
   HANDLE hFileMapping_;
   int field_14;
-};
-
-struct WplInfo {
-  std::uint32_t structSize;
-  std::uint32_t structSize;
-  std::uint32_t field_04;
-  std::uint32_t field_04;
-  HINSTANCE hAppInst;
-  HINSTANCE hAppInst;
-  HINSTANCE hResDllInst;
-  HINSTANCE hResDllInst;
-  std::uint32_t startResId;
-  std::uint32_t startResId;
-  std::uint32_t field_14;
-  std::uint32_t field_14;
-  std::uint32_t field_18;
-  std::uint32_t field_18;
-  std::uint32_t field_1C;
-  std::uint32_t field_1C;
-  std::uint32_t field_20[7];
-  std::uint32_t field_20[7];
 };
 
 struct ResManager {  // base: OP2Class<ResManager>
@@ -2478,68 +2653,6 @@ struct MusicManager {  // base: OP2Class<MusicManager>
   int hasBegunPlayback_;
   int currentSongFileIndex_;
   int currentSongPosition_;
-};
-
-struct ImageInfo {
-  int scanlineByteWidth;
-  int dataOffset;
-  int height;
-  int width;
-  std::uint16_t typeFlags;
-  std::uint16_t paletteIndex;
-};
-
-struct FrameComponentInfo {
-  std::uint16_t pixelXOffset;
-  std::uint16_t pixelYOffset;
-  std::uint16_t imageIndex;
-};
-
-struct FrameOptionalInfo {
-  std::int8_t offsetX;
-  std::int8_t offsetY;
-  std::int8_t offsetX2;
-  std::int8_t offsetY2;
-};
-
-struct FrameInfo___anon_ {
-  std::uint16_t left;  // off~0x7FFE
-  std::uint16_t top;
-  std::uint16_t right;
-  std::uint16_t bottom;
-};
-
-struct FrameInfo {  (size=14)
-  } rect;
-  std::uint16_t numFrameComponents;
-  FrameComponentInfo* pFrameComponent;
-  // static_assert(sizeof(FrameInfo) == 14);  // verify after completing fields
-};
-
-struct AnimationInfo {  (size=112)
-  int field_00;
-  RECT selectionBox;
-  int pixelXDisplacement;
-  int pixelYDisplacement;
-  int field_1C;
-  int numFrames;
-  FrameInfo* pFrameInfo;
-  std::uint16_t frameOptionalInfoStartIndex;
-  std::uint8_t padding[112 - 42];
-  // static_assert(sizeof(AnimationInfo) == 112);  // verify after completing fields
-};
-
-struct SpriteManager {  // base: OP2Class<SpriteManager>
-  uint8* pPaletteData_;
-  int paletteSize_;
-  ImageInfo imageInfo_[MaxNumImages];
-  int numImages_;
-  AnimationInfo animationInfo_[MaxNumAnimations];
-  int numAnimations_;
-  GFXSpriteBitmap* pBitmap_;
-  FrameInfo** ppFrameInfo_;
-  FrameComponentInfo** ppFrameComponentInfo_;
-  FrameOptionalInfo** ppFrameOptionalInfo_;
 };
 
 struct StreamIO {  // base: OP2Class<StreamIO>

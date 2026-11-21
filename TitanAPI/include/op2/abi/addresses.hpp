@@ -10,8 +10,8 @@ namespace Free {
   inline constexpr std::uintptr_t OP2Free                            = 0x4c0f30;  // func &Tethys::OP2Free
   inline constexpr std::uintptr_t OP2Alloc                           = 0x4c0f40;  // func &Tethys::OP2Alloc
   inline constexpr std::uintptr_t OP2Free_2                          = 0x4c1380;  // func &OP2Free
-  inline constexpr std::uintptr_t OP2Realloc                         = 0x4c21f0;  // func &OP2Realloc
   inline constexpr std::uintptr_t OP2Alloc_2                         = 0x4c21f0;  // func &OP2Alloc
+  inline constexpr std::uintptr_t OP2Realloc                         = 0x4c29c0;  // func &OP2Realloc
   inline constexpr std::uintptr_t OP2Calloc                          = 0x4c2cc0;  // func &OP2Calloc
   inline constexpr std::uintptr_t OP2Strdup                          = 0x4c2d60;  // func &OP2Strdup
   inline constexpr std::uintptr_t GetLocalizedStringTable            = 0x4e88f8;  // global char*(&)[LocalizedString::StringTableSize]
@@ -268,7 +268,7 @@ namespace Building {
   inline constexpr std::uintptr_t Draw                               = 0x408ea0;  // func &$::Draw
   inline constexpr std::uintptr_t GetAnimationFrame                  = 0x409310;  // func &$::GetAnimationFrame
   inline constexpr std::uintptr_t MouseOver                          = 0x4093d0;  // func &$::MouseOver
-  inline constexpr std::uintptr_t CheckSpontaneouslyExplode          = 0x409400;  // func &$::CheckSpontaneouslyExplode
+  inline constexpr std::uintptr_t CanSpontaneouslyExplode            = 0x409400;  // func &$::CanSpontaneouslyExplode
   inline constexpr std::uintptr_t GetFoodProduction                  = 0x409af0;  // func &$::GetFoodProduction
   inline constexpr std::uintptr_t UpdateTotalCapacities              = 0x41d620;  // func &$::UpdateTotalCapacities
   inline constexpr std::uintptr_t Destroy                            = 0x482bd0;  // func &$::Destroy
@@ -310,7 +310,7 @@ namespace BuildingGroup {
   inline constexpr std::uintptr_t RecordUnitBlock_2                  = 0x47a350;  // func void(const UnitBlock&, ScGroup&)
   inline constexpr std::uintptr_t RecordConnectTubes                 = 0x47a370;  // func void(Location&)
   inline constexpr std::uintptr_t RecordTube                         = 0x47a390;  // func void(Location&)
-  inline constexpr std::uintptr_t RecordConnectTubes_2               = 0x47a3b0;  // func void(Location&, MapID)
+  inline constexpr std::uintptr_t RecordWall                         = 0x47a3b0;  // func void(Location&, MapID)
   inline constexpr std::uintptr_t SetRect_2                          = 0x47a3e0;  // func void(Location&, MapID, MapID)
   inline constexpr std::uintptr_t RecordBuilding                     = 0x47a410;  // func void(Location&, MapID, MapID, ScGroup&)
   inline constexpr std::uintptr_t RecordUnitBlock_3                  = 0x47a440;  // func void(ScGroup&, int)
@@ -336,6 +336,7 @@ namespace CargoTruck {
   inline constexpr std::uintptr_t GetChassisAnimationIndex           = 0x4063b0;  // func &$::GetChassisAnimationIndex
   inline constexpr std::uintptr_t SetCargoToLoad                     = 0x406630;  // func &$::SetCargoToLoad
   inline constexpr std::uintptr_t TransferCargo                      = 0x406710;  // func &$::TransferCargo
+  inline constexpr std::uintptr_t SetTruckCargo                      = 0x406cd0;  // func &$::SetTruckCargo
   inline constexpr std::uintptr_t GetType                            = 0x406e10;  // func &$::GetType
   inline constexpr std::uintptr_t CanProduceAt                       = 0x40a4b0;  // func &$::CanProduceAt
   inline constexpr std::uintptr_t GetMouseOverStr                    = 0x43a690;  // func &$::GetMouseOverStr
@@ -348,17 +349,17 @@ namespace CargoTruck {
 namespace CConfig {
   inline constexpr std::uintptr_t CConfig                            = 0x410750;  // ctor InternalCtor
   inline constexpr std::uintptr_t CConfig_2                          = 0x410820;  // func
-  inline constexpr std::uintptr_t SetInt                             = 0x410830;  // func int(const char*, const char*, int)
-  inline constexpr std::uintptr_t GetInt                             = 0x410870;  // func int(const char*, const char*, int)
-  inline constexpr std::uintptr_t SetInt_2                           = 0x410890;  // func int(const char*, const char*, const char*)
-  inline constexpr std::uintptr_t GetString                          = 0x4108b0;  // func int(const char*, const char*, char*, uint32, const char*)
-  inline constexpr std::uintptr_t SetInt_3                           = 0x4108e0;  // func int(const char*, int)
-  inline constexpr std::uintptr_t GetInt_2                           = 0x4109b0;  // func int(const char*, int)
-  inline constexpr std::uintptr_t SetInt_4                           = 0x410a70;  // func int(const char*, const char*)
-  inline constexpr std::uintptr_t GetInt_3                           = 0x410b30;  // func int(const char*, char*, uint32, const char*)
-  inline constexpr std::uintptr_t Flush                              = 0x410c00;  // func
+  inline constexpr std::uintptr_t string                             = 0x410830;  // func ibool(const char*, const char*, int)
+  inline constexpr std::uintptr_t string_2                           = 0x410870;  // func int(const char*, const char*, int)
+  inline constexpr std::uintptr_t string_3                           = 0x410890;  // func ibool(const char*, const char*, const char*)
+  inline constexpr std::uintptr_t Flush                              = 0x4108b0;  // func int(const char*, const char*, char*, uint32, const char*)
+  inline constexpr std::uintptr_t GetString                          = 0x4108e0;  // func int(const char*, int)
+  inline constexpr std::uintptr_t Flush_2                            = 0x4109b0;  // func int(const char*, int)
+  inline constexpr std::uintptr_t GetString_2                        = 0x410a70;  // func ibool(const char*, const char*)
+  inline constexpr std::uintptr_t GetString_3                        = 0x410b30;  // func int(const char*, char*, uint32, const char*)
+  inline constexpr std::uintptr_t Flush_3                            = 0x410c00;  // func
   inline constexpr std::uintptr_t FileExists                         = 0x410c10;  // func &$::FileExists
-  inline constexpr std::uintptr_t CopyIniFile                        = 0x410c40;  // func &$::CopyIniFile
+  inline constexpr std::uintptr_t CopyIniFile                        = 0x410c40;  // func int(const char*)
   inline constexpr std::uintptr_t GetInstance                        = 0x547090;  // global CConfig*
 }
 
@@ -579,6 +580,7 @@ namespace DayNightManager {
 }
 
 namespace DetailPane {
+  inline constexpr std::uintptr_t HandleScrolling                    = 0x407b00;  // func &$::HandleScrolling
   inline constexpr std::uintptr_t CenterViewOn                       = 0x408210;  // func &$::CenterViewOn
 }
 
@@ -809,7 +811,7 @@ namespace FileRStream {
   inline constexpr std::uintptr_t F1                                 = 0x4ab510;  // func &$::F1
   inline constexpr std::uintptr_t SetOpenFileHandle                  = 0x4ab550;  // func &$::SetOpenFileHandle
   inline constexpr std::uintptr_t Close                              = 0x4ab590;  // func &$::Close
-  inline constexpr std::uintptr_t OpenFile                           = 0x4ab5e0;  // func &$::OpenFile
+  inline constexpr std::uintptr_t OpenFile                           = 0x4ab5e0;  // func int(const char*)
   inline constexpr std::uintptr_t Tell                               = 0x4ab640;  // func &$::Tell
   inline constexpr std::uintptr_t Seek                               = 0x4ab670;  // func &$::Seek
   inline constexpr std::uintptr_t GetFileSize                        = 0x4ab700;  // func &$::GetFileSize
@@ -829,7 +831,7 @@ namespace FileRWStream {
   inline constexpr std::uintptr_t F1                                 = 0x4b0dc0;  // func &$::F1
   inline constexpr std::uintptr_t SetOpenFileHandle                  = 0x4b0e00;  // func &$::SetOpenFileHandle
   inline constexpr std::uintptr_t Close                              = 0x4b0e40;  // func &$::Close
-  inline constexpr std::uintptr_t OpenFile                           = 0x4b0e80;  // func &$::OpenFile
+  inline constexpr std::uintptr_t OpenFile                           = 0x4b0e80;  // func int(const char*)
   inline constexpr std::uintptr_t Tell                               = 0x4b0ee0;  // func &$::Tell
   inline constexpr std::uintptr_t Seek                               = 0x4b0f00;  // func &$::Seek
   inline constexpr std::uintptr_t GetFileSize                        = 0x4b0f50;  // func &$::GetFileSize
@@ -848,7 +850,7 @@ namespace FileWStream {
   inline constexpr std::uintptr_t F1                                 = 0x4aba70;  // func &$::F1
   inline constexpr std::uintptr_t SetOpenFileHandle                  = 0x4abab0;  // func &$::SetOpenFileHandle
   inline constexpr std::uintptr_t Close                              = 0x4abaf0;  // func &$::Close
-  inline constexpr std::uintptr_t OpenFile                           = 0x4abb30;  // func &$::OpenFile
+  inline constexpr std::uintptr_t OpenFile                           = 0x4abb30;  // func int(const char*)
   inline constexpr std::uintptr_t Tell                               = 0x4abb90;  // func &$::Tell
   inline constexpr std::uintptr_t Seek                               = 0x4abbb0;  // func &$::Seek
   inline constexpr std::uintptr_t GetFileSize                        = 0x4abc00;  // func &$::GetFileSize
@@ -931,18 +933,18 @@ namespace FusionDriveModule {
 namespace Game {
   inline constexpr std::uintptr_t UnsetBlight                        = 0x476ea0;  // func void FASTCALL(Location, ibool)
   inline constexpr std::uintptr_t CreateTornado                      = 0x476ea0;  // func void FASTCALL(Location, ibool)
-  inline constexpr std::uintptr_t FindEMPMissileTarget               = 0x4782e0;  // func Disaster* FASTCALL(int, int, int)
-  inline constexpr std::uintptr_t FindEMPMissileTarget_2             = 0x478320;  // func Disaster* FASTCALL(int, int, int)
+  inline constexpr std::uintptr_t GetInstance                        = 0x4782e0;  // func Disaster* FASTCALL(int, int, int)
+  inline constexpr std::uintptr_t GetInstance_2                      = 0x478320;  // func Disaster* FASTCALL(int, int, int)
   inline constexpr std::uintptr_t CreateTornado_2                    = 0x478350;  // func Disaster* FASTCALL(int, int, int, int, int, int)
-  inline constexpr std::uintptr_t FindEMPMissileTarget_3             = 0x4783b0;  // func Disaster* FASTCALL(int, int, MeteorSize)
+  inline constexpr std::uintptr_t GetInstance_3                      = 0x4783b0;  // func Disaster* FASTCALL(int, int, MeteorSize)
   inline constexpr std::uintptr_t CreateLightning                    = 0x4783e0;  // func Disaster* FASTCALL(int, int, int, int, int)
-  inline constexpr std::uintptr_t FindEMPMissileTarget_4             = 0x478420;  // func Disaster* FASTCALL(int, int, int, int, int)
-  inline constexpr std::uintptr_t FindEMPMissileTarget_5             = 0x478480;  // func Location FASTCALL(int, int, int, int, int)
-  inline constexpr std::uintptr_t GetInstance                        = 0x478780;  // func ibool FASTCALL(Unit&, MapID, Location, int, MapID, UnitDirection)
-  inline constexpr std::uintptr_t GetInstance_2                      = 0x478940;  // func ibool FASTCALL(MapID, int, int, MineType, OreYield, int)
+  inline constexpr std::uintptr_t FindEMPMissileTarget               = 0x478420;  // func Disaster* FASTCALL(int, int, int, int, int)
+  inline constexpr std::uintptr_t FindEMPMissileTarget_2             = 0x478480;  // func Location FASTCALL(int, int, int, int, int)
+  inline constexpr std::uintptr_t GetInstance_4                      = 0x478780;  // func ibool FASTCALL(Unit&, MapID, Location, int, MapID, UnitDirection)
+  inline constexpr std::uintptr_t GetInstance_5                      = 0x478940;  // func ibool FASTCALL(MapID, int, int, MineType, OreYield, int)
   inline constexpr std::uintptr_t CreateWreckage                     = 0x4789f0;  // func ibool FASTCALL(int, int, int, ibool)
-  inline constexpr std::uintptr_t GetInstance_3                      = 0x478aa0;  // func ibool FASTCALL(int, int, int, MapID)
-  inline constexpr std::uintptr_t GetInstance_4                      = 0x478bb0;  // func int FASTCALL(Unit&, int, int, int)
+  inline constexpr std::uintptr_t GetInstance_6                      = 0x478aa0;  // func ibool FASTCALL(int, int, int, MapID)
+  inline constexpr std::uintptr_t GetInstance_7                      = 0x478bb0;  // func int FASTCALL(Unit&, int, int, int)
 }
 
 namespace GameFrame {
@@ -1170,6 +1172,20 @@ namespace HeaderVBlkRWStream {
   inline constexpr std::uintptr_t OpenRead                           = 0x4076b0;  // func int(StreamIO*)
   inline constexpr std::uintptr_t Close                              = 0x407720;  // func &$::Close
   inline constexpr std::uintptr_t HeaderVBlkRWStream_3               = 0x4cf598;  // vtable DEFINE_VTBL_GETTER
+}
+
+namespace Hive {
+  inline constexpr std::uintptr_t CalculateDIRTDamagePrevention      = 0x430050;  // func &$::CalculateDIRTDamagePrevention
+}
+
+namespace HiveManager {
+  inline constexpr std::uintptr_t GetTubeStatus                      = 0x42ed90;  // func &$::GetTubeStatus
+  inline constexpr std::uintptr_t RecordBuilding                     = 0x42f150;  // func &$::RecordBuilding
+  inline constexpr std::uintptr_t RemoveBuilding                     = 0x42f5f0;  // func &$::RemoveBuilding
+  inline constexpr std::uintptr_t Deinit                             = 0x42fcb0;  // func &$::Deinit
+  inline constexpr std::uintptr_t Init                               = 0x42fd20;  // func &$::Init
+  inline constexpr std::uintptr_t CalculateAverageDIRTDamageProtection = 0x42ff90;  // func &$::CalculateAverageDIRTDamageProtection
+  inline constexpr std::uintptr_t GetInstance                        = 0x547390;  // global HiveManager*
 }
 
 namespace IDlgWnd {
@@ -1541,7 +1557,7 @@ namespace MapObjDrawList {
 }
 
 namespace MapObject {
-  inline constexpr std::uintptr_t CheckSpontaneouslyExplode          = 0x4017e0;  // func &$::CheckSpontaneouslyExplode
+  inline constexpr std::uintptr_t CanSpontaneouslyExplode            = 0x4017e0;  // func &$::CanSpontaneouslyExplode
   inline constexpr std::uintptr_t FireWeapon                         = 0x4017f0;  // func &$::FireWeapon
   inline constexpr std::uintptr_t SelectTurretGraphic                = 0x401800;  // func &$::SelectTurretGraphic
   inline constexpr std::uintptr_t MarkForRedraw                      = 0x401810;  // func &$::MarkForRedraw
@@ -1603,7 +1619,7 @@ namespace MapObjectManager {
   inline constexpr std::uintptr_t LoadSheetFiles                     = 0x445180;  // func &$::LoadSheetFiles
   inline constexpr std::uintptr_t Load                               = 0x446740;  // func &$::Load
   inline constexpr std::uintptr_t GetMapObjTypeTable                 = 0x446743;  // global MapObjectType**&
-  inline constexpr std::uintptr_t NumMapObjTypes                     = 0x44675c;  // global MapObjectType**&
+  inline constexpr std::uintptr_t GetMapObjTypeTableEnd              = 0x44675c;  // global MapObjectType**&
   inline constexpr std::uintptr_t Save                               = 0x446780;  // func &$::Save
   inline constexpr std::uintptr_t CreateMapObject                    = 0x4467c0;  // func &$::CreateMapObject
   inline constexpr std::uintptr_t GetMapObjectType                   = 0x446ab0;  // func &$::GetMapObjectType
@@ -1677,7 +1693,7 @@ namespace MediumBuildingExplosion {
 namespace MemoryMappedFile {
   inline constexpr std::uintptr_t MemoryMappedFile                   = 0x484530;  // ctor InternalCtor
   inline constexpr std::uintptr_t MemoryMappedFile_2                 = 0x484540;  // func
-  inline constexpr std::uintptr_t OpenFile                           = 0x484590;  // func &$::OpenFile
+  inline constexpr std::uintptr_t if                                 = 0x484590;  // func ibool(const char*, ibool)
   inline constexpr std::uintptr_t Flush                              = 0x4847a0;  // func &$::Flush
   inline constexpr std::uintptr_t DuplicateFileMapping               = 0x4847c0;  // func &$::DuplicateFileMapping
 }
@@ -2099,7 +2115,7 @@ namespace PlayerImpl {
   inline constexpr std::uintptr_t DoTransferToAllies                 = 0x4909f0;  // func &$::DoTransferToAllies
   inline constexpr std::uintptr_t GetChatTextColor                   = 0x490be0;  // func &$::GetChatTextColor
   inline constexpr std::uintptr_t GetPlayerName                      = 0x490c80;  // func &$::GetPlayerName
-  inline constexpr std::uintptr_t SetPlayerName                      = 0x490cb0;  // func &$::SetPlayerName
+  inline constexpr std::uintptr_t SetPlayerName                      = 0x490cb0;  // func void(const char*)
   inline constexpr std::uintptr_t GetMiniMapColor                    = 0x490ce0;  // func &$::GetMiniMapColor
   inline constexpr std::uintptr_t IsAlly                             = 0x490d30;  // func &$::IsAlly
   inline constexpr std::uintptr_t GetAlliedTo                        = 0x490d60;  // func &$::GetAlliedTo
@@ -2275,19 +2291,19 @@ namespace Residence {
 namespace ResManager {
   inline constexpr std::uintptr_t Init                               = 0x470f70;  // func &$::Init
   inline constexpr std::uintptr_t ShutDown                           = 0x471140;  // func &$::ShutDown
-  inline constexpr std::uintptr_t OpenStream                         = 0x471170;  // func &$::OpenStream
-  inline constexpr std::uintptr_t ChecksumStream                     = 0x4712a0;  // func &$::ChecksumStream
+  inline constexpr std::uintptr_t OpenStream                         = 0x471170;  // func StreamIO*(const char*)
+  inline constexpr std::uintptr_t ChecksumStream                     = 0x4712a0;  // func uint32(const char*)
   inline constexpr std::uintptr_t ReleaseStream                      = 0x4713d0;  // func &$::ReleaseStream
-  inline constexpr std::uintptr_t LockStream                         = 0x471430;  // func &$::LockStream
+  inline constexpr std::uintptr_t ReleaseStream_2                    = 0x471430;  // func void*(const char*, size_t*)
   inline constexpr std::uintptr_t UnlockStream                       = 0x471490;  // func &$::UnlockStream
   inline constexpr std::uintptr_t FindCDRoot                         = 0x4714a0;  // func &$::FindCDRoot
-  inline constexpr std::uintptr_t GetFilePath                        = 0x471590;  // func &$::GetFilePath
+  inline constexpr std::uintptr_t ShutDown_2                         = 0x471590;  // func ibool(const char*, char*)
   inline constexpr std::uintptr_t InitInstalledDir                   = 0x471850;  // func &$::InitInstalledDir
   inline constexpr std::uintptr_t VerifyCD                           = 0x471900;  // func &$::VerifyCD
   inline constexpr std::uintptr_t InitCDDir                          = 0x4719d0;  // func &$::InitCDDir
   inline constexpr std::uintptr_t GetInstalledDir                    = 0x471a70;  // func &$::GetInstalledDir
   inline constexpr std::uintptr_t GetCDDir                           = 0x471aa0;  // func &$::GetCDDir
-  inline constexpr std::uintptr_t CreateStream                       = 0x471b60;  // func &$::CreateStream
+  inline constexpr std::uintptr_t CreateStream                       = 0x471b60;  // func StreamIO*(const char*)
   inline constexpr std::uintptr_t GetInstance                        = 0x56c028;  // global ResManager*
 }
 
@@ -2503,6 +2519,11 @@ namespace ScStub {
   inline constexpr std::uintptr_t IsEnabled                          = 0x478ca0;  // func &$::IsEnabled
 }
 
+namespace ScStubFactory {
+  inline constexpr std::uintptr_t Create                             = 0x47b410;  // func &$::Create
+  inline constexpr std::uintptr_t GetInstance                        = 0x4e3c30;  // global ScStubFactory*
+}
+
 namespace ScStubList {
   inline constexpr std::uintptr_t Init                               = 0x47aab0;  // func &ScStubList::Init
   inline constexpr std::uintptr_t Reset                              = 0x47ab00;  // func &ScStubList::Reset
@@ -2531,6 +2552,17 @@ namespace SensorPackage {
   inline constexpr std::uintptr_t SensorPackage                      = 0x4d41a0;  // vtable DEFINE_VTBL_GETTER
 }
 
+namespace SetTriggerImpl {
+  inline constexpr std::uintptr_t GetScStubFactory                   = 0x492090;  // func &$::GetScStubFactory
+  inline constexpr std::uintptr_t Destroy                            = 0x493080;  // func &$::Destroy
+  inline constexpr std::uintptr_t InitSetParams                      = 0x4930f0;  // func &$::InitSetParams
+  inline constexpr std::uintptr_t InitSubTrigger                     = 0x493120;  // func &$::InitSubTrigger
+  inline constexpr std::uintptr_t HasFired                           = 0x493130;  // func &$::HasFired
+  inline constexpr std::uintptr_t Save                               = 0x4931c0;  // func &$::Save
+  inline constexpr std::uintptr_t Load                               = 0x493240;  // func &$::Load
+  inline constexpr std::uintptr_t SetTriggerImpl                     = 0x4d6680;  // vtable DEFINE_VTBL_GETTER
+}
+
 namespace Sheet {
   inline constexpr std::uintptr_t LoadSheetFiles                     = 0x445180;  // func &$::LoadSheetFiles
   inline constexpr std::uintptr_t Load                               = 0x446740;  // func &$::Load
@@ -2544,7 +2576,7 @@ namespace Sheet {
 
 namespace SheetParser {
   inline constexpr std::uintptr_t SheetParser                        = 0x411260;  // func
-  inline constexpr std::uintptr_t Open                               = 0x411290;  // func &$::Open
+  inline constexpr std::uintptr_t Open                               = 0x411290;  // func StreamIO*(const char*)
   inline constexpr std::uintptr_t Close                              = 0x4112e0;  // func &$::Close
   inline constexpr std::uintptr_t F1                                 = 0x411310;  // func &$::F1
   inline constexpr std::uintptr_t GetNextField                       = 0x4113e0;  // func &$::GetNextField
@@ -2743,7 +2775,7 @@ namespace Stickyfoam {
 namespace StreamIO {
   inline constexpr std::uintptr_t GetStatus                          = 0x4077c0;  // func &$::GetStatus
   inline constexpr std::uintptr_t WriteString                        = 0x49db40;  // func ibool FASTCALL($*, const char*)
-  inline constexpr std::uintptr_t ReadString                         = 0x49dbc0;  // func &$::ReadString
+  inline constexpr std::uintptr_t ReadString                         = 0x49dbc0;  // func const char*()
   inline constexpr std::uintptr_t Destroy                            = 0x4ab340;  // func &$::Destroy
   inline constexpr std::uintptr_t F1                                 = 0x4ab370;  // func &$::F1
   inline constexpr std::uintptr_t Close                              = 0x4ab3a0;  // func &$::Close
@@ -2840,8 +2872,8 @@ namespace TApp {
   inline constexpr std::uintptr_t GetAccelInst                       = 0x401df0;  // func &$::GetAccelInst
   inline constexpr std::uintptr_t ChecksumData                       = 0x40c050;  // func &$::ChecksumData
   inline constexpr std::uintptr_t ChecksumGameState                  = 0x40c0b0;  // func &$::ChecksumGameState
-  inline constexpr std::uintptr_t OP2MessageBox                      = 0x41e0e0;  // func &$::OP2MessageBox
-  inline constexpr std::uintptr_t GetGameIdentifier                  = 0x44ffe0;  // func ibool FASTCALL(int*, const char*)
+  inline constexpr std::uintptr_t OP2MessageBox                      = 0x41e0e0;  // func int FASTCALL(HWND, const char*, const char*, uint32)
+  inline constexpr std::uintptr_t OP2MessageBox_2                    = 0x44ffe0;  // func ibool FASTCALL(int*, const char*)
   inline constexpr std::uintptr_t Init                               = 0x485b20;  // func &$::Init
   inline constexpr std::uintptr_t InitForDirectDraw                  = 0x485ec0;  // func &$::InitForDirectDraw
   inline constexpr std::uintptr_t ModeSwitch                         = 0x486020;  // func &$::ModeSwitch
@@ -2869,11 +2901,11 @@ namespace TApp {
   inline constexpr std::uintptr_t GetLoadName                        = 0x487430;  // func &$::GetLoadName
   inline constexpr std::uintptr_t OnSaveGame                         = 0x4874e0;  // func &$::OnSaveGame
   inline constexpr std::uintptr_t OnLoadGame                         = 0x4874f0;  // func &$::OnLoadGame
-  inline constexpr std::uintptr_t OnLoadScript                       = 0x487590;  // func &$::OnLoadScript
-  inline constexpr std::uintptr_t SaveGame                           = 0x4877e0;  // func &$::SaveGame
-  inline constexpr std::uintptr_t LoadGame                           = 0x4878f0;  // func &$::LoadGame
+  inline constexpr std::uintptr_t OnLoadScript                       = 0x487590;  // func void(const char*)
+  inline constexpr std::uintptr_t GetLoadName_2                      = 0x4877e0;  // func void(const char*, TFileDialog*)
+  inline constexpr std::uintptr_t LoadGame                           = 0x4878f0;  // func int(const char*)
   inline constexpr std::uintptr_t GetAppDesc                         = 0x487a40;  // func &$::GetAppDesc
-  inline constexpr std::uintptr_t DoNetGame                          = 0x487c20;  // func &$::DoNetGame
+  inline constexpr std::uintptr_t NetActive_2                        = 0x487c20;  // func int(int, const char*)
   inline constexpr std::uintptr_t NetShutdown                        = 0x487e30;  // func &$::NetShutdown
   inline constexpr std::uintptr_t LobbyShutdown                      = 0x487f60;  // func &$::LobbyShutdown
   inline constexpr std::uintptr_t StartSingleGame                    = 0x487f80;  // func &$::StartSingleGame
@@ -2884,7 +2916,7 @@ namespace TApp {
   inline constexpr std::uintptr_t InstallFilterFunc                  = 0x4883b0;  // func &$::InstallFilterFunc
   inline constexpr std::uintptr_t F1DetectHook                       = 0x488420;  // func &$::F1DetectHook
   inline constexpr std::uintptr_t SetDebugMsgOnChecksumGameState     = 0x4df1a0;  // global ibool&
-  inline constexpr std::uintptr_t GetGameIdentifier_2                = 0x4e9b18;  // global GUID*
+  inline constexpr std::uintptr_t GetGameIdentifier                  = 0x4e9b18;  // global GameIdentifier*
   inline constexpr std::uintptr_t GetInstance                        = 0x56e868;  // global TApp*
 }
 
@@ -2933,7 +2965,7 @@ namespace TerrainManager {
 namespace TextStream {
   inline constexpr std::uintptr_t TextStream                         = 0x48eff0;  // ctor InternalCtor
   inline constexpr std::uintptr_t TextStream_2                       = 0x48f000;  // func
-  inline constexpr std::uintptr_t Open                               = 0x48f020;  // func &$::Open
+  inline constexpr std::uintptr_t Open                               = 0x48f020;  // func ibool(const char*)
   inline constexpr std::uintptr_t Close                              = 0x48f050;  // func &$::Close
   inline constexpr std::uintptr_t ResetToLastToken                   = 0x48f070;  // func &$::ResetToLastToken
   inline constexpr std::uintptr_t SkipRestOfLine                     = 0x48f090;  // func &$::SkipRestOfLine
@@ -3031,6 +3063,7 @@ namespace TriggerImpl {
   inline constexpr std::uintptr_t Save                               = 0x491e90;  // func &$::Save
   inline constexpr std::uintptr_t Load                               = 0x491f10;  // func &$::Load
   inline constexpr std::uintptr_t IsEnabled                          = 0x491f90;  // func &$::IsEnabled
+  inline constexpr std::uintptr_t InitTriggerParams                  = 0x491fd0;  // func &$::InitTriggerParams
   inline constexpr std::uintptr_t RaiseEvent                         = 0x491ff0;  // func &$::RaiseEvent
   inline constexpr std::uintptr_t GetScStubFactory                   = 0x492090;  // func &$::GetScStubFactory
   inline constexpr std::uintptr_t Init                               = 0x4920a0;  // func &$::Init
@@ -3047,20 +3080,6 @@ namespace Tube {
   inline constexpr std::uintptr_t GetType                            = 0x447ff0;  // func &$::GetType
   inline constexpr std::uintptr_t Tube                               = 0x4d0f00;  // vtable DEFINE_VTBL_GETTER
   inline constexpr std::uintptr_t Tube_2                             = 0x4d0f20;  // vtable DEFINE_VTBL_GETTER
-}
-
-namespace TubeConnection {
-  inline constexpr std::uintptr_t CalculateDIRTDamagePrevention      = 0x430050;  // func &$::CalculateDIRTDamagePrevention
-}
-
-namespace TubeConnectionManager {
-  inline constexpr std::uintptr_t GetTubeStatus                      = 0x42ed90;  // func &$::GetTubeStatus
-  inline constexpr std::uintptr_t RecordBuilding                     = 0x42f150;  // func &$::RecordBuilding
-  inline constexpr std::uintptr_t RemoveBuilding                     = 0x42f5f0;  // func &$::RemoveBuilding
-  inline constexpr std::uintptr_t Deinit                             = 0x42fcb0;  // func &$::Deinit
-  inline constexpr std::uintptr_t Init                               = 0x42fd20;  // func &$::Init
-  inline constexpr std::uintptr_t CalculateAverageDIRTDamageProtection = 0x42ff90;  // func &$::CalculateAverageDIRTDamageProtection
-  inline constexpr std::uintptr_t GetInstance                        = 0x547390;  // global TubeConnectionManager*
 }
 
 namespace UIButton {

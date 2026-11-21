@@ -106,5 +106,5 @@ foreach($en in $emitOrder){
   $enumCount++
 }
 $L.Add('} // namespace op2::abi')
-[IO.File]::WriteAllText((Join-Path $Out 'enums.hpp'), ($L -join "`r`n") + "`r`n", (New-Object Text.UTF8Encoding($false)))
+[IO.File]::WriteAllText((Join-Path $Out 'enums.hpp'), ($L -join "`n") + "`n", (New-Object Text.UTF8Encoding($false)))
 "enums.hpp written: $enumCount enums (+$anonCount anonymous), $valCount enumerators."

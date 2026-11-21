@@ -54,14 +54,18 @@ static void initProc() {
     log::line("InitProc: starting");
 
     Player you = Game::player(0);
-    you.goEden().setCommonOre(5000).setWorkers(20).setScientists(10);   // setup is fluent and chains
+    you.goEden().setCommonOre(5000, 10000).setFood(5000, 10000);        // setup is fluent and chains
+    you.setWorkers(20).setScientists(10).setKids(10);
 
+    // Tube every building except power plants to the Command Center, or it stays idle.
     BaseLayout base;
-    base.buildings = { { {10, 10}, MapID::CommandCenter }, { {14, 10}, MapID::Tokamak } };
-    base.vehicles  = { { {12, 13}, MapID::ConVec } };
+    base.buildings = { { {10, 10}, MapID::CommandCenter }, { {16, 10}, MapID::Agridome },
+                       { {10, 15}, MapID::Tokamak },       { {16, 15}, MapID::CommonStorage } };
+    base.tubes     = { { {12, 10}, {16, 10} }, { {11, 11}, {11, 15} }, { {11, 15}, {16, 15} } };
+    base.vehicles  = { { {13, 13}, MapID::ConVec } };
     createBase(you, base);
 
-    Game::forceMoraleGood();
+    op2::ignore(Game::forceMoraleGood());
     Game::addMessage("Welcome, commander.");
 }
 
@@ -85,6 +89,11 @@ extern "C" int __stdcall DllMain(void*, unsigned long reason, void*) {
 A few things worth knowing:
 
 - **Coordinates are visible tiles** - the same numbers you read off the in-game status bar.
+- **A starting colony has to be viable.** Buildings other than power plants only work when tubed to the Command
+  Center. Give the colony food (and a working Agridome), or the engine trims the population on the first tick and
+  it then starves. Stored ore is capped by the colony's *active* storage, so ore needs a tubed Common Storage (or
+  smelter) to stick - the capacity argument to `setCommonOre` alone isn't enough. `samples/Template` is a
+  verified starting point.
 - **Colony setup is fluent** - `goEden` / `setCommonOre` / `setWorkers` / ... return `Player&`, so they chain
   and never need a result check (setup can only fail on a bad player index, which is a safe no-op).
 - **Orders return `[[nodiscard]] Result<void>`.** Check them: `if (auto r = unit.move({x, y}); !r) log::line(r.error().what);`.

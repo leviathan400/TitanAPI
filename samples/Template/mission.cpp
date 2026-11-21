@@ -33,22 +33,29 @@ static void initProc() {
 
     Player you = Game::player(0);
     you.goEden();                 // or you.goPlymouth();
-    you.setCommonOre(5000);
-    you.setWorkers(20);
-    you.setScientists(10);
+    // Starting stock. Give food and kids too: with no food stored the colony starves before the Agridome is
+    // producing. Ore above the colony's storage capacity is clipped by the engine, so the base below includes
+    // a Common Storage (the capacity argument alone doesn't stick without one).
+    you.setCommonOre(5000, 10000).setFood(5000, 10000);
+    you.setWorkers(20).setScientists(10).setKids(10);
 
     // Stamp a starting colony from a declarative layout. Coordinates are VISIBLE tiles
-    // (the same numbers shown on the in-game status bar).
+    // (the same numbers shown on the in-game status bar). Every building except power plants must be tubed
+    // to the Command Center or it stays idle (an unconnected Agridome makes no food).
     BaseLayout base;
     base.buildings = { { {10, 10}, MapID::CommandCenter },
-                       { {14, 10}, MapID::Tokamak },
-                       { {10, 14}, MapID::Agridome } };
-    base.vehicles  = { { {12, 13}, MapID::ConVec } };
+                       { {16, 10}, MapID::Agridome },
+                       { {10, 15}, MapID::Tokamak },
+                       { {16, 15}, MapID::CommonStorage } };
+    base.tubes     = { { {12, 10}, {16, 10} },     // CC -> Agridome
+                       { {11, 11}, {11, 15} },     // CC down to the lower row
+                       { {11, 15}, {16, 15} } };   // lower row -> Common Storage
+    base.vehicles  = { { {13, 13}, MapID::ConVec } };
     createBase(you, base);
 
     // Orders return Result<void> - a failure is a value you can branch on, never an engine crash.
     for (Unit convec : Game::unitsOfType(MapID::ConVec))
-        if (auto r = convec.move({ 12, 16 }); !r)
+        if (auto r = convec.move({ 13, 18 }); !r)
             log::linef("move rejected: %s", r.error().what);
 
     // Victory / defeat.  TODO: pick your real win condition (see op2/trigger.hpp).

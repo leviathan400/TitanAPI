@@ -3,10 +3,11 @@
 //
 // Turns fixed Outpost2.exe addresses into callable functions / usable data, relocated from the preferred
 // base (0x00400000) to the actual module base, so it works even if the exe was rebased (ASLR). This is our
-// own clean re-implementation of the technique TethysAPI's OP2Mem/OP2Thunk use. Addresses come from the
-// generated addresses.hpp, which is produced from D:\sdk\re-reference\ (facts about the binary).
+// own clean re-implementation of the technique TethysAPI's OP2Mem/OP2Thunk use. The facade passes the
+// addresses as literals (e.g. abi::member<0x477570, int>); they are looked up in the generated reference header
+// op2/abi/addresses.hpp (produced by tools/gen-addresses.ps1 from the RE data - facts about the binary).
 //
-// Mechanism (full write-up: re-reference/ABI-MECHANISM.md):
+// Mechanism (full write-up: docs/ABI-MECHANISM.md):
 //   actualPtr = moduleBase + (address - kImageBase)        // moduleBase == kImageBase in the usual case
 //   * Member functions are called via a __thiscall function pointer whose FIRST explicit parameter is
 //     `this` (MSVC passes it in ECX) - the clean technique; no __fastcall + dummy-EDX hack.

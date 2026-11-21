@@ -30,5 +30,5 @@ $L.Add('')
 $L.Add('template <CommandType C> using CmdPayloadT = typename CmdPayload<C>::type;')
 $L.Add('')
 $L.Add('} // namespace op2::abi')
-[IO.File]::WriteAllText((Join-Path $Out 'command_map.hpp'), ($L -join "`r`n") + "`r`n", (New-Object Text.UTF8Encoding($false)))
+[IO.File]::WriteAllText((Join-Path $Out 'command_map.hpp'), ($L -join "`n") + "`n", (New-Object Text.UTF8Encoding($false)))
 "command_map.hpp written: $n CommandType->payload specializations."

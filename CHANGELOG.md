@@ -3,6 +3,36 @@
 All notable changes to **Outpost 2 TitanAPI** are documented here. This is the public changelog; it begins at
 the first public release.
 
+## 0.6.9 - 2026-11-21 - Engine data refreshed from the latest TethysAPI
+
+### Added
+- **CI on GitHub Actions** (`.github/workflows/build.yml`): every push to `main` and every pull request builds
+  TitanAPI and all nine samples as 32-bit MSVC Release DLLs and uploads each DLL as a build artifact. A build
+  badge is on the README.
+
+### Changed
+- **Generated ABI headers regenerated from the latest TethysAPI RE data** (TethysAPI master, November 2026).
+  `op2/abi/enums.hpp` gains the `SettingToggle` enum; `op2/abi/addresses.hpp` picks up 43 newly bound
+  functions and follows upstream renames (e.g. `TubeConnectionManager` -> `HiveManager`,
+  `CheckSpontaneouslyExplode` -> `CanSpontaneouslyExplode`); `op2/abi/structs.scaffold.hpp` reflects the many
+  newly named struct fields (MapObject, Vehicle, Building, TApp, ScBase, PathFinder, ...) and new structs
+  (`CargoTruck`, `Hive`, `Projectile`, ...). The `command_map.hpp` table is unchanged.
+- **No behavioral change.** Every hand-written engine offset and address TitanAPI uses was re-verified
+  against the updated headers (all struct sizes and field offsets unchanged), so mission code and the
+  in-game behavior are the same as 0.6.7.
+
+### Fixed
+- **`samples/Template` now starts a colony that survives.** Its Agridome wasn't tubed to the Command Center, so
+  it stayed idle; with no food stored and no storage building, the colony starved and the mission failed after
+  about 775 ticks. The starting base now tubes an Agridome and a Common Storage to the Command Center, and the
+  setup adds starting food and kids alongside the workers, scientists and ore.
+- **`samples/Template` logs to `cTemplate.log`** as its README says, instead of `cTitanAPI.log`.
+- **Docs:** the README and GETTING-STARTED mission examples had the same non-viable colony (no food, untubed
+  buildings, ore with no storage); both now match the fixed Template, and GETTING-STARTED explains why. The
+  GETTING-STARTED example also no longer discards the `[[nodiscard]]` result of `Game::forceMoraleGood()`.
+- **The `tools/gen-*.ps1` header generators write LF line endings**, matching the committed headers, so a
+  regeneration only shows real changes.
+
 ## 0.6.7 - 2026-07-08 - Correctness pass + shared sample scaffolding
 
 ### Fixed

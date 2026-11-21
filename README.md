@@ -9,7 +9,7 @@ straight on the running game engine, with no legacy SDK stack to wrangle. Orders
 instead of crashing the game, units and players are simple value handles, and a declarative BaseBuilder turns a
 starting colony into a few lines of data.
 
-> **Status: v0.6.7 - feature-complete and verified in-game.** Eight modules cover the full
+> **Status: v0.6.9 - feature-complete and verified in-game.** Eight modules cover the full
 > mission-scripting surface (unit orders, state, enumeration, triggers + victory, AI groups, world & map,
 > mission lifecycle, base building). Every build is validated by a 157-check in-game self-test, and multiple sample
 > missions (single-player and multiplayer) ship in `samples/`.
@@ -48,14 +48,15 @@ using namespace op2;
 static void initProc() {
     // Colony setup is fluent - it chains and never needs a result check.
     Player you = Game::player(0);
-    you.goEden().setCommonOre(5000).setWorkers(20).setScientists(10);
+    you.goEden().setCommonOre(5000, 10000).setFood(5000, 10000).setWorkers(20).setScientists(10).setKids(10);
 
-    // Stamp a starting colony from a declarative layout (coordinates are visible tiles).
+    // Stamp a starting colony from a declarative layout (coordinates are visible tiles). Tubes connect the
+    // Agridome and storage to the Command Center so they're active.
     BaseLayout base;
-    base.buildings = { { {10, 10}, MapID::CommandCenter }, { {14, 10}, MapID::Tokamak },
-                       { {10, 14}, MapID::Agridome } };
-    base.vehicles  = { { {12, 13}, MapID::Lynx, MapID::Laser }, { {13, 13}, MapID::ConVec } };
-    base.tubes     = { { {10, 12}, {14, 12} } };
+    base.buildings = { { {10, 10}, MapID::CommandCenter }, { {16, 10}, MapID::Agridome },
+                       { {10, 15}, MapID::Tokamak },       { {16, 15}, MapID::CommonStorage } };
+    base.tubes     = { { {12, 10}, {16, 10} }, { {11, 11}, {11, 15} }, { {11, 15}, {16, 15} } };
+    base.vehicles  = { { {13, 13}, MapID::Lynx, MapID::Laser }, { {14, 13}, MapID::ConVec } };
     createBase(you, base);
 
     // Orders return Result<T> - failures are values, not crashes. Enumerate units with C++23 ranges.
@@ -109,6 +110,9 @@ cmake --build TitanAPI/build --config Release
 Outpost 2 is a 32-bit process, so missions build as **32-bit MSVC / C++23** (`/std:c++23preview`, static CRT).
 The output is a `c<Name>.dll` you drop into your Outpost 2 install; it appears in the game's mission list.
 
+**CI:** every push to `main` and every pull request builds TitanAPI and all the samples on GitHub Actions
+(`.github/workflows/build.yml`); each run's DLLs are downloadable from its Actions page.
+
 Full walkthrough - prerequisites, your first mission, building, deploying, and running - is in
 **[`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md)**.
 
@@ -120,8 +124,10 @@ Full walkthrough - prerequisites, your first mission, building, deploying, and r
 op2titanapi/
   README.md / CHANGELOG.md   this overview and the changelog
   TitanAPI/        the library: op2:: facade headers (include/op2/) + the test mission (src/)
+                   + tools/ (maintainer scripts that regenerate the op2/abi/ reference headers from RE data)
   samples/         complete, in-game-verified missions you can read and adapt (see samples/README.md)
   docs/            GETTING-STARTED.md, FACADE-DESIGN.md (the design), ABI-MECHANISM.md (how the layer reads the game)
+  .github/         CI: the GitHub Actions build of TitanAPI and every sample
 ```
 
 Include the whole facade with a single `#include "op2.hpp"`; add `op2/trigger.hpp` for triggers/victory and
