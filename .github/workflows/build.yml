@@ -1,0 +1,52 @@
+# Build TitanAPI (the test-mission DLL) and every sample mission as 32-bit MSVC Release DLLs.
+# Build-only: the in-game self-test needs Outpost 2 and can't run on a CI runner.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: TitanAPI,           path: TitanAPI }
+          - { name: Layer1,             path: samples/Layer1 }
+          - { name: SmokeTest,          path: samples/SmokeTest }
+          - { name: Template,           path: samples/Template }
+          - { name: ColdFront,          path: samples/ColdFront }
+          - { name: Mining,             path: samples/Mining }
+          - { name: Nostalgia2P,        path: samples/Nostalgia2P }
+          - { name: Starship,           path: samples/Starship }
+          - { name: Population,         path: samples/Population }
+          - { name: RisingFromTheAshes, path: samples/RisingFromTheAshes }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Default generator = the runner's newest Visual Studio; -A Win32 is required (Outpost 2 is 32-bit).
+      - name: Configure
+        run: cmake -S "${{ matrix.path }}" -B build -A Win32
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: build/Release/*.dll
+          if-no-files-found: error

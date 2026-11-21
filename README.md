@@ -1,5 +1,7 @@
 # Outpost 2 TitanAPI
 
+[![Build](https://github.com/leviathan400/TitanAPI/actions/workflows/build.yml/badge.svg)](https://github.com/leviathan400/TitanAPI/actions/workflows/build.yml)
+
 **A modern C++23 SDK for writing Outpost 2 missions.**
 
 TitanAPI lets you script Outpost 2 colony, combat, and multiplayer missions in clean, modern C++ - building
