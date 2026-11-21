@@ -147,6 +147,11 @@ The facade fixes both *structurally*:
   single `detail::issue()` → `ProcessCommandPacket`. Raw `Cmd*` thunks are not reachable from `op2`.
 - **One result type.** Orders return `Result<void>` (`= std::expected<void, OrderError>`). Preconditions
   are checked *before* dispatch, returning a typed error instead of corrupting state.
+- **Result only where failure is real.** Genuinely fallible operations (orders, unit creation, placement)
+  return a `[[nodiscard]] Result`. Pure *configuration* that can only fail on a programmer error - player/world
+  setup like `goEden` / `setCommonOre` - is fluent (`Player&`) and infallible, so it chains without a result to
+  check. For deliberate fire-and-forget on a fallible call, `op2::ignore(...)` discards the result explicitly
+  (an accidental bare discard still warns).
 
 ### 5.2 The types
 
@@ -167,8 +172,8 @@ enum class OrderStatus : std::uint8_t {
 };
 
 struct OrderError {
-  OrderStatus      status = OrderStatus::Ok;
-  std::string_view what   = {};   // static, cheap; for logs/bindings
+  OrderStatus status = OrderStatus::Ok;
+  const char* what   = "";   // static literal; drops straight into printf / log::line / OutputDebugString
 };
 
 template <class T = void>

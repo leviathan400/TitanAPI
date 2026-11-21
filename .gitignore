@@ -1,23 +1,50 @@
-# CMake / MSBuild build output
+# --- Build output ---
 build/
-**/build/
 out/
-[Dd]ebug/
-[Rr]elease/
-*.dll
-*.lib
-*.exp
-*.pdb
+[Bb]in/
+[Oo]bj/
 *.obj
+*.exp
+*.lib
+*.pdb
+*.ilk
+*.idb
 
-# IDE / editor
+# --- Compiled mission DLLs (built artifacts, not source) ---
+*.dll
+*.exe
+
+# --- CMake ---
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.cmake.stamp
+
+# --- Visual Studio / IDE ---
 .vs/
-.vscode/
 *.user
 *.suo
-CMakeSettings.json
+*.vcxproj.user
+.vscode/
+*.code-workspace
 
-# OS
+# --- Generated version resource (produced from version.rc.in) ---
+version.rc
+
+# --- OS / editor cruft ---
 Thumbs.db
 desktop.ini
-.DS_Store
+*~
+*.tmp
+
+# --- Local scratch (offsetof probes etc.) ---
+_probe_*.cpp
+_probe_*.exe
+_probe_*.obj
+
+# --- Private / internal-only material (NOT published to GitHub) ---
+# Reverse-engineering source data, command-packet research, and the ecosystem survey.
+# These are the maintainer's internal reference docs; the public repo does not link to them.
+re-reference/
+CommandPacket/
+private/

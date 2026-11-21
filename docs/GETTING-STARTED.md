@@ -21,14 +21,15 @@ doing the actual work inside `InitProc`/`AIProc`.
 
 The quickest start is to copy an existing sample folder and rename it:
 
-1. Copy `samples/ColonyDemo/` to `samples/MyMission/`.
+1. Copy `samples/Template/` to `samples/MyMission/`.
 2. In `CMakeLists.txt`, change the project name and `OUTPUT_NAME` to `cMyMission` (the leading `c` files it under
    Colony Games in-game).
 3. Edit `mission.cpp` - the rest of this guide explains what's there.
 
 Every sample `#include`s the live library from `../../TitanAPI/include`, so it always builds against the current
-`op2::` API. The three small scaffolding headers (`op2_mission.hpp`, `op2_log.hpp`, `op2_crash.hpp`) come with the
-sample - they are the mission-DLL contract and the logging/crash helpers.
+`op2::` API. The three small scaffolding headers (`op2_mission.hpp`, `op2_log.hpp`, `op2_crash.hpp`) are shared by
+all samples from `samples/common/` - they are the mission-DLL contract and the logging/crash helpers (the sample's
+`CMakeLists.txt` already has `../common` on the include path).
 
 ## 4. The shape of a mission
 
@@ -53,10 +54,7 @@ static void initProc() {
     log::line("InitProc: starting");
 
     Player you = Game::player(0);
-    you.goEden();
-    you.setCommonOre(5000);
-    you.setWorkers(20);
-    you.setScientists(10);
+    you.goEden().setCommonOre(5000).setWorkers(20).setScientists(10);   // setup is fluent and chains
 
     BaseLayout base;
     base.buildings = { { {10, 10}, MapID::CommandCenter }, { {14, 10}, MapID::Tokamak } };
@@ -87,8 +85,10 @@ extern "C" int __stdcall DllMain(void*, unsigned long reason, void*) {
 A few things worth knowing:
 
 - **Coordinates are visible tiles** - the same numbers you read off the in-game status bar.
-- **Orders return `Result<void>`.** Check them: `if (auto r = unit.move({x, y}); !r) log::line(r.error().what);`.
-  A failed order is a value, never a crash.
+- **Colony setup is fluent** - `goEden` / `setCommonOre` / `setWorkers` / ... return `Player&`, so they chain
+  and never need a result check (setup can only fail on a bad player index, which is a safe no-op).
+- **Orders return `[[nodiscard]] Result<void>`.** Check them: `if (auto r = unit.move({x, y}); !r) log::line(r.error().what);`.
+  A failed order is a value, never a crash. For deliberate fire-and-forget, `op2::ignore(unit.move({x, y}));`.
 - **Include `op2/trigger.hpp` in exactly one `.cpp`** - it defines the exported trigger-callback stubs.
 - **The crash guard takes a plain function** (not a capturing lambda), so the SEH `__try` is valid.
 
