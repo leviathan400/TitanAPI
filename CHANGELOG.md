@@ -27,6 +27,10 @@ the first public release.
   (`CargoTruck`, `Hive`, `Projectile`, ...). The `command_map.hpp` table is unchanged.
 - **Every hand-written engine offset and address was re-verified** against the updated headers (all struct
   sizes and field offsets unchanged).
+- **`samples/SmokeTest` refreshed** from the current test mission. It was a v0.6.2 snapshot that missed every
+  module added since (groups, triggers, world/disasters, save/load, BaseBuilder) and this release's fixes; it
+  now runs the same 165-check self-test and 8 outcome checks, reports v0.6.9, and its README says how to keep it
+  in sync.
 
 ### Fixed
 - **Starship objectives no longer turn green on their own (memory corruption).** Seven `Player` calls -

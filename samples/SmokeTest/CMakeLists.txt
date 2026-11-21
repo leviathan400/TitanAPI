@@ -11,7 +11,7 @@
 # Output: build/Release/cTitanSmokeTest.dll  (drop into your OPU maps\ folder; logs to OPU\logs\cTitanSmokeTest.log)
 
 cmake_minimum_required(VERSION 3.21)
-project(TitanSmokeTest VERSION 0.6.2 LANGUAGES CXX RC DESCRIPTION "TitanAPI sample: in-game smoke test (self-test)")
+project(TitanSmokeTest VERSION 0.6.9 LANGUAGES CXX RC DESCRIPTION "TitanAPI sample: in-game smoke test (self-test)")
 
 if(NOT MSVC)
   message(FATAL_ERROR "Outpost 2 is a 32-bit MSVC target - build with MSVC (cl.exe).")
@@ -29,6 +29,7 @@ add_library(cTitanSmokeTest SHARED
   "${CMAKE_CURRENT_BINARY_DIR}/version.rc"
   ../common/op2_mission.hpp   # shared scaffolding (samples/common) - listed for IDEs
   ../common/op2_log.hpp       # shared scaffolding - listed for IDEs
+  ../common/op2_crash.hpp     # shared scaffolding - listed for IDEs
 )
 
 # Shared mission scaffolding comes from ../common; the op2:: library is the live TitanAPI include tree.
