@@ -33,11 +33,14 @@ public:
   [[nodiscard]] constexpr bool valid() const noexcept { return (id_ >= 0) && (id_ != kNilIndex); }
 
   // --- engine state (thiscall thunks on the {int id_} ScStub handle; `this` == &id_) ---
-  void enable()  { int id = id_; abi::member<0x478C60, void>(&id); }   ///< Enable this trigger.
-  void disable() { int id = id_; abi::member<0x478C70, void>(&id); }   ///< Disable this trigger.
-  [[nodiscard]] bool isEnabled() const { int id = id_; return abi::member<0x478CA0, int>(&id) != 0; }
+  // An invalid trigger (e.g. a default-constructed one, id 255) is a no-op / reads false: handing the engine the
+  // nil index makes it index past its ScStub table.
+  void enable()  { if (!valid()) return; int id = id_; abi::member<0x478C60, void>(&id); }   ///< Enable this trigger.
+  void disable() { if (!valid()) return; int id = id_; abi::member<0x478C70, void>(&id); }   ///< Disable this trigger.
+  [[nodiscard]] bool isEnabled() const { if (!valid()) return false; int id = id_; return abi::member<0x478CA0, int>(&id) != 0; }
   /// Did this trigger fire for `playerNum`? (Do not pass AllPlayers / -1.)
   [[nodiscard]] bool hasFired(int playerNum) const {
+    if (!valid()) return false;
     int id = id_; return abi::member<0x478CC0, int>(&id, playerNum) != 0;
   }
 

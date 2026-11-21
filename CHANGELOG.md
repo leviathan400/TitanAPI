@@ -3,7 +3,7 @@
 All notable changes to **Outpost 2 TitanAPI** are documented here. This is the public changelog; it begins at
 the first public release.
 
-## 0.6.9 - 2026-11-21 - Engine data refreshed from the latest TethysAPI
+## 0.6.9 - 2026-11-21 - Player-state corruption fix, engine data refreshed from the latest TethysAPI
 
 ### Added
 - **CI on GitHub Actions** (`.github/workflows/build.yml`): every push to `main` and every pull request builds
@@ -17,11 +17,26 @@ the first public release.
   `CheckSpontaneouslyExplode` -> `CanSpontaneouslyExplode`); `op2/abi/structs.scaffold.hpp` reflects the many
   newly named struct fields (MapObject, Vehicle, Building, TApp, ScBase, PathFinder, ...) and new structs
   (`CargoTruck`, `Hive`, `Projectile`, ...). The `command_map.hpp` table is unchanged.
-- **No behavioral change.** Every hand-written engine offset and address TitanAPI uses was re-verified
-  against the updated headers (all struct sizes and field offsets unchanged), so mission code and the
-  in-game behavior are the same as 0.6.7.
+- **Every hand-written engine offset and address was re-verified** against the updated headers (all struct
+  sizes and field offsets unchanged).
 
 ### Fixed
+- **Starship objectives no longer turn green on their own (memory corruption).** Seven `Player` calls -
+  `hasTechnology`, `markResearchComplete`, `allyWith`, `centerViewOn`, `resetChecks`, `canBuildSpace` and
+  `canDoResearch` - are methods of the engine's small per-player `_Player` handle, but TitanAPI called them on
+  the player's `PlayerImpl` state record. The capability checks cache their results in the handle's eight flag
+  bytes, so on `PlayerImpl` they overwrote its alliance word (+4) and its satellite/launch bitfield (+8), and the
+  starship count triggers then fired. `RisingFromTheAshes`, which runs `resetChecks()` + `canBuildSpace()` every
+  cycle for its defeat check, won by itself at tick 16. They now run on the engine's own handle (the global
+  `_Player` array at 0x56C280), as original SDK missions do.
+- **A never-created `Group`, `Pinwheel` or `Trigger` can no longer crash the game.** A default handle holds the
+  engine's nil index (255); calls passed it straight to the engine, which indexed past its group table - reads
+  such as `totalUnitCount()` crashed and orders such as `takeUnit()` wrote through a junk pointer. Every call on
+  an invalid handle is now a no-op that returns 0 / false.
+- **`samples/RisingFromTheAshes` is restored** to the complete mission (an unfinished debugging edit had left its
+  AI base half built). It now runs cleanly with all five starship objectives correctly unmet at the start.
+- Self-test +2 (now **159**): the capability checks must leave `PlayerImpl` untouched, and calls on an invalid
+  `Group` / `Trigger` must be safe no-ops.
 - **`samples/Template` now starts a colony that survives.** Its Agridome wasn't tubed to the Command Center, so
   it stayed idle; with no food stored and no storage building, the colony starved and the mission failed after
   about 775 ticks. The starting base now tubes an Agridome and a Common Storage to the Command Center, and the

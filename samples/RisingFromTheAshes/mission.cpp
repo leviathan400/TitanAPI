@@ -320,11 +320,10 @@ void buildPlayerBase() {
   else                 { workers = 23; food = 1000; ore = 3000; }
   kHuman.setWorkers(workers).setScientists(13).setKids(15)
         .setCommonOre(ore, 50000).setFood(food, 50000).setRareOre(0);
-  // Initialize the research/tech state. Without this the engine's per-cycle space-program recompute reads an
-  // uninitialized state and garbages the launch bitfield (PlayerImpl+8) -> starship objectives spuriously green
-  // on load. The original gets this from the engine's scenario/techtree load; we do it explicitly. Level 1 keeps
-  // the Phoenix Module (and the rest of the tree) as things you still research. (See samples/Starship.)
-  kHuman.setTechLevel(12);   // TEST: does full tech (like Starship/smoke) keep +8 clean? (1 did not)
+  // Initialize the research/tech state: level 1 grants the starting techs and keeps the Phoenix Module (and the
+  // rest of the tree) as things you still research. (The spuriously-green starship objectives once blamed on the
+  // tech state were really TitanAPI <= 0.6.7 calling the _Player capability checks on PlayerImpl - fixed in 0.6.9.)
+  kHuman.setTechLevel(1);
 
   BaseLayout base;
   base.buildings = { { {24, 48}, abi::MapID::CommandCenter }, { {32, 48}, abi::MapID::Agridome },
@@ -391,16 +390,13 @@ void buildAIBase() {
   Unit earthworker = mk(abi::MapID::Earthworker, { 26, 178 }, kAI);
 
   // The Vehicle Factory drives reinforcement: it keeps the mining/repair/defense groups stocked.
-  g.reinforceVehicleBuildGroup = createFightGroup(kHuman);   // TEST: a PLAYER-0 group + a PLAYER-0 unit
-  for (Unit pu : Game::unitsOf(0)) { if (pu.isLive() && pu.isVehicle()) { g.reinforceVehicleBuildGroup.takeUnit(pu); break; } }
-  (void)vf; (void)sf; (void)buildConvec; (void)earthworker;
-  return;   // TEST: player-0 group + player-0 unit takeUnit
+  g.reinforceVehicleBuildGroup = createBuildingGroup(kAI);
+  g.reinforceVehicleBuildGroup.takeUnit(vf);
 
-  // TEST BISECT: skip the 4 AI mining groups - do they stomp player-0's +8?
-  // setupAIMiningGroup(g.aiCommonMine, g.aiCommonSmelterW, 3);
-  // setupAIMiningGroup(g.aiCommonMine, g.aiCommonSmelterE, 3);
-  // setupAIMiningGroup(g.aiRareMine,   g.aiRareSmelterW,   3);
-  // setupAIMiningGroup(g.aiRareMine,   g.aiRareSmelterE,   3);
+  setupAIMiningGroup(g.aiCommonMine, g.aiCommonSmelterW, 3);
+  setupAIMiningGroup(g.aiCommonMine, g.aiCommonSmelterE, 3);
+  setupAIMiningGroup(g.aiRareMine,   g.aiRareSmelterW,   3);
+  setupAIMiningGroup(g.aiRareMine,   g.aiRareSmelterE,   3);
 
   // The colony-expansion build group: rebuilds the full intended base over time (the AI's "self-healing").
   const Location safeTL{ 10, 176 }, safeBR{ 46, 212 };
@@ -427,18 +423,11 @@ void buildAIBase() {
     { { 44, 163 }, B::GuardPost, B::ESG }, { { 53, 170 }, B::GuardPost, B::Stickyfoam },
     { { 39, 166 }, B::GuardPost, B::Stickyfoam }, { { 23, 168 }, B::GuardPost, B::Stickyfoam },
   };
-  (void)recs;   // TEST BISECT: skip the 21-entry recordBuilding loop - does it stomp player-0's +8?
-  // for (const Rec& rb : recs) g.colonyExpansionBuildGroup.recordBuilding(rb.at, rb.type, rb.weapon);
-  // TEST BISECT: skip the 3 setTargCount calls (per-type target table writes) - the suspect.
-  // g.colonyExpansionBuildGroup.setTargCount(B::ConVec,      B::None, 1);
-  // g.colonyExpansionBuildGroup.setTargCount(B::Earthworker, B::None, 1);
-  // g.colonyExpansionBuildGroup.setTargCount(B::RoboMiner,   B::None, 1);
-  // TEST BISECT: recordVehReinforceGroup with a BuildingGroup target (engine wants a FightGroup) - the suspect.
-  // g.colonyExpansionBuildGroup.recordVehReinforceGroup(g.colonyExpansionBuildGroup, 1);
-
-  // TEST BISECT: return before the lava walls / guard tubes / repair group. Garbage now -> the building-group
-  // ops above are the culprit; clean -> the walls/tubes/repairGroup below are.
-  return;
+  for (const Rec& rb : recs) g.colonyExpansionBuildGroup.recordBuilding(rb.at, rb.type, rb.weapon);
+  g.colonyExpansionBuildGroup.setTargCount(B::ConVec,      B::None, 1);
+  g.colonyExpansionBuildGroup.setTargCount(B::Earthworker, B::None, 1);
+  g.colonyExpansionBuildGroup.setTargCount(B::RoboMiner,   B::None, 1);
+  g.colonyExpansionBuildGroup.recordVehReinforceGroup(g.colonyExpansionBuildGroup, 1);
 
   // A defensive lava-wall ring + connecting tubes for the northern guard posts (laid directly).
   Game::createWallLine(B::LavaWall, {  9, 165 }, { 17, 168 });
@@ -453,7 +442,7 @@ void buildAIBase() {
   g.repairGroup.setBuildRect(safeTL, safeBR);
   g.repairGroup.takeUnit(g.aiRepairConvec);
   g.repairGroup.setTargCount(B::ConVec, B::None, 1);
-  // g.reinforceVehicleBuildGroup.recordVehReinforceGroup(g.repairGroup, 2);   // TEST BISECT (BuildingGroup target)
+  g.reinforceVehicleBuildGroup.recordVehReinforceGroup(g.repairGroup, 2);
 }
 
 // ---- mining beacons (CreateMineBeacons) ----
@@ -621,15 +610,11 @@ static int disasterInterval() {
 static void aiProc() {
   const int now = Game::tick();
 
-  // TEMP probe: dump player-0 PlayerImpl fields AROUND +8 (raw reads via the engine player-array base @0x4890C3,
-  // stride 3108). If +8 garbages to 0x01FFFFFF but its neighbours (+4 alliedBy, +12 difficulty, resources,
-  // population) stay at their set values, only +8 changed -> the satellite recompute, not a range memory-stomp.
+  // TEMP probe: P0 satellite counts (GetSatelliteCount reads +8). 0 = clean; 15 = garbage (objectives would be
+  // spuriously green). Confirms setTechLevel(1) keeps +8 clean. First few cycles only; remove once verified.
   { static int n = 0; if (n < 6) { ++n;
-      char* base = abi::ref<char*>(0x4890C3);   // player array base; player 0 sits at base + 0*3108
-      auto r = [base](int off) { return base ? *reinterpret_cast<int*>(base + off) : -999; };
-      log::linef("  [fields t%d] +8(sat)=0x%08X | +4(ally)=%d +12(diff)=%d +16(food)=%d +24(maxCO)=%d +32(CO)=%d"
-                 " +36(RO)=%d +44(eden)=%d +148(work)=%d +152(sci)=%d +156(kids)=%d",
-                 now, unsigned(r(8)), r(4), r(12), r(16), r(24), r(32), r(36), r(44), r(148), r(152), r(156)); } }
+      log::linef("  [sat t%d] P0 rlv=%d solar=%d edward=%d", now,
+                 kHuman.satelliteCount(0x6a), kHuman.satelliteCount(0x59), kHuman.satelliteCount(0x58)); } }
 
   // Stealth (lights-off) raids light up once they take fire.
   if (g.periodicFightGroup.valid() && g.periodicFightGroup.isUnderAttack())

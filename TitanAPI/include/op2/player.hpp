@@ -1,11 +1,17 @@
 #pragma once
 // op2/player.hpp - Player: a value handle for a player slot, wrapping the engine's PlayerImpl.
 //
-// Setup writes live PlayerImpl state directly and calls a couple of engine members. The PlayerImpl array base
-// is read from a hardcoded immediate in OP2 code at 0x4890C3 (each PlayerImpl is 3108 bytes; player[n] =
-// base + n*3108). Field offsets were verified by offsetof against the engine struct (sizeof == 3108).
-// Members: PlayerImpl::GoHuman() @0x4906C0 (thiscall); Research::SetTechLevel(num, level*1000) @0x473030 on
-// the Research singleton @0x56C230. (All proven in-game by the Layer-1 sample.)
+// Setup writes live PlayerImpl state directly and calls engine members. The PlayerImpl array base is read from a
+// hardcoded immediate in OP2 code at 0x4890C3 (each PlayerImpl is 3108 bytes; player[n] = base + n*3108). Field
+// offsets were verified by offsetof against the engine struct (sizeof == 3108).
+//
+// The engine has TWO per-player objects, and each member function belongs to exactly one of them:
+//   * PlayerImpl (impl())  - the player's state. GoHuman/GoAI, ProcessCommandPacket, IsAlly, GetSatelliteCount.
+//   * _Player    (handle()) - a small 12-byte handle {int id; uint8 check[8]}, one per player in the global array
+//                 at 0x56C280. HasTechnology, MarkResearchComplete, AllyWith, CenterViewOn, ResetChecks and the
+//                 Can* capability checks. These cache results in the handle's check[] bytes.
+// Passing the wrong object as `this` can corrupt the other's memory, so each call below names its class.
+// Research::SetTechLevel(num, level*1000) @0x473030 runs on the Research singleton @0x56C230.
 
 #include "op2/core/error.hpp"
 #include "op2/core/location.hpp"
@@ -65,22 +71,26 @@ public:
   [[nodiscard]] Difficulty difficulty() const { return Difficulty(readi(OFF_difficulty)); }
 
   // ---- technology ----
-  [[nodiscard]] bool hasTechnology(int techID) const {                      ///< PlayerImpl::HasTechnology @0x477570
-    char* p = impl(); return p && (abi::member<0x477570, int>(p, techID) != 0);
+  // These are methods of the engine's _Player HANDLE (see handle() below), not of PlayerImpl: `this` must be the
+  // engine's own {int id; uint8 check[8]} handle for this player.
+  [[nodiscard]] bool hasTechnology(int techID) const {                      ///< _Player::HasTechnology @0x477570
+    char* h = handle(); return h && (abi::member<0x477570, int>(h, techID) != 0);
   }
-  void markResearchComplete(int techID) { if (char* p = impl()) abi::member<0x477510, void>(p, techID); }
-  /// Recompute this player's cached CAPABILITY flags. The engine caches the results of canBuildSpace /
-  /// canDoResearch / canBuildBuilding / ... ; they read as stale (often zero -> false) until recomputed, so you
-  /// MUST call resetChecks() immediately before reading any of them. (PlayerImpl::ResetChecks @0x4776E0.)
-  void resetChecks() { if (char* p = impl()) abi::member<0x4776E0, void>(p); }
+  /// Grant a technology as if researched. (_Player::MarkResearchComplete @0x477510.)
+  void markResearchComplete(int techID) { if (char* h = handle()) abi::member<0x477510, void>(h, techID); }
+  /// Clear this player's cached CAPABILITY flags. The engine caches the results of canBuildSpace /
+  /// canDoResearch / canBuildBuilding / ... in the player's _Player handle and only recomputes a flag after it is
+  /// reset, so call resetChecks() immediately before reading any of them. (_Player::ResetChecks @0x4776E0 - sets
+  /// the handle's 8 cached flags to -1.)
+  void resetChecks() { if (char* h = handle()) abi::member<0x4776E0, void>(h); }
   /// Can this player still build space-program structures? Goes false once the colony loses the ability to
-  /// complete the starship (PlayerImpl::CanBuildSpace @0x477890). Call resetChecks() first. Used by starship-race
+  /// complete the starship (_Player::CanBuildSpace @0x477890). Call resetChecks() first. Used by starship-race
   /// failure conditions.
-  [[nodiscard]] bool canBuildSpace() const { char* p = impl(); return p && (abi::member<0x477890, int>(p) != 0); }
-  /// Can this player still research `techID` (has it, or the prerequisites remain reachable)?
-  /// (PlayerImpl::CanDoResearch @0x477BF0.)
+  [[nodiscard]] bool canBuildSpace() const { char* h = handle(); return h && (abi::member<0x477890, int>(h) != 0); }
+  /// Can this player still research `techID` (has it, or the prerequisites remain reachable)? Call resetChecks()
+  /// first. (_Player::CanDoResearch @0x477BF0.)
   [[nodiscard]] bool canDoResearch(int techID) const {
-    char* p = impl(); return p && (abi::member<0x477BF0, int>(p, techID) != 0);
+    char* h = handle(); return h && (abi::member<0x477BF0, int>(h, techID) != 0);
   }
 
   // NOTE: never write PlayerImpl+8 (the satellite/launch bitfield) yourself. The engine owns and recomputes it;
@@ -92,7 +102,8 @@ public:
   [[nodiscard]] bool isAlly(int playerNum) const {                          ///< fully allied both ways? @0x490D30
     char* p = impl(); return p && (abi::member<0x490D30, int>(p, playerNum) != 0);
   }
-  void allyWith(int playerNum)         { if (char* p = impl()) abi::member<0x4774C0, void>(p, playerNum); }
+  /// Set this player as allied to `playerNum` (one way). (_Player::AllyWith @0x4774C0.)
+  void allyWith(int playerNum)         { if (char* h = handle()) abi::member<0x4774C0, void>(h, playerNum); }
   void mutuallyAllyWith(int playerNum) { allyWith(playerNum); Player{ playerNum }.allyWith(idx_); }
 
   /// Count of a launched satellite / Spaceport cargo MapID (drives Starship evacuation victories). @0x4908E0.
@@ -105,10 +116,10 @@ public:
   /// lazy/composable view instead of a vector, use `Game::unitsOf(index())`.
   [[nodiscard]] std::vector<Unit> units(abi::MapID type = abi::MapID::Any) const;
 
-  /// Center this player's screen on a visible tile. PlayerImpl::CenterViewOn @0x477490 (Location by value).
+  /// Center this player's screen on a visible tile. _Player::CenterViewOn @0x477490 (Location by value).
   void centerViewOn(Location at) const {
-    if (char* p = impl()) { struct EngineLoc { int x, y; } loc{ at.engineX(), at.engineY() };
-                            abi::member<0x477490, void>(p, loc); }
+    if (char* h = handle()) { struct EngineLoc { int x, y; } loc{ at.engineX(), at.engineY() };
+                              abi::member<0x477490, void>(h, loc); }
   }
 
   /// Submit a command packet AS this player - the single local order-dispatch path
@@ -141,6 +152,20 @@ private:
     char* base = abi::ref<char*>(0x4890C3);
     return base ? base + idx_ * kStride : nullptr;
   }
+
+  /// The engine's own _Player HANDLE for this player (as char*), or nullptr: element idx_ of the global
+  /// `_Player Player[7]` array at 0x56C280 (TethysAPI's `Player[]`; what original SDK missions call through).
+  /// A handle is {int id; uint8 check[8]} = 12 bytes, and the _Player methods (hasTechnology, resetChecks,
+  /// canBuildSpace, ...) cache their results in its check[] bytes. Calling them with PlayerImpl* as `this` instead
+  /// writes those cache bytes over PlayerImpl+4 (alliedBy) and +8 (the satellite/launch bitfield) - which is what
+  /// made starship objectives fire spuriously in 0.6.7 and earlier.
+  static constexpr std::uintptr_t kHandleArray  = 0x56C280;
+  static constexpr int            kHandleStride = 12;
+  [[nodiscard]] char* handle() const {
+    if (!valid()) return nullptr;
+    return reinterpret_cast<char*>(abi::reloc(kHandleArray)) + idx_ * kHandleStride;
+  }
+
   static void seti(char* p, int off, int v) { *reinterpret_cast<int*>(p + off) = v; }
 
   void setFaction(bool eden) {

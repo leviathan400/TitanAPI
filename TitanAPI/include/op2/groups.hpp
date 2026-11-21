@@ -17,6 +17,7 @@
 #include <vector>
 #include <deque>
 #include <initializer_list>
+#include <type_traits>
 
 namespace op2 {
 
@@ -95,79 +96,80 @@ public:
   [[nodiscard]] constexpr bool valid() const noexcept { return (id_ >= 0) && (id_ != kNilIndex); }
 
   // --- roster (ScGroup) ---
-  void takeUnit(Unit u)   { int id = id_; abi::member<0x479AF0, void>(&id, u.id()); }  ///< Move a unit into this group.
-  void removeUnit(Unit u) { int id = id_; abi::member<0x479BD0, void>(&id, u.id()); }  ///< Remove a unit from this group.
-  void setLights(bool on) { int id = id_; abi::member<0x479B60, void>(&id, on ? 1 : 0); }  ///< Headlights for the group.
+  void takeUnit(Unit u)   { call<0x479AF0, void>(u.id()); }  ///< Move a unit into this group.
+  void removeUnit(Unit u) { call<0x479BD0, void>(u.id()); }  ///< Remove a unit from this group.
+  void setLights(bool on) { call<0x479B60, void>(on ? 1 : 0); }  ///< Headlights for the group.
   /// Auto-delete this group once it has no units left (vs. keeping it around to refill with reinforcements).
-  void setDeleteWhenEmpty(bool s) { int id = id_; abi::member<0x479B80, void>(&id, s ? 1 : 0); }
-  [[nodiscard]] int  totalUnitCount() const { int id = id_; return abi::member<0x479A10, int>(&id); }
-  [[nodiscard]] bool isUnderAttack()  const { int id = id_; return abi::member<0x479AE0, int>(&id) != 0; }
+  void setDeleteWhenEmpty(bool s) { call<0x479B80, void>(s ? 1 : 0); }
+  [[nodiscard]] int  totalUnitCount() const { return call<0x479A10, int>(); }
+  [[nodiscard]] bool isUnderAttack()  const { return call<0x479AE0, int>() != 0; }
 
   /// Move ALL units out of `src` and into this group. (ScGroup::TakeAllUnits @0x479BA0 - takes ScGroup*.)
-  void takeAllUnits(Group src) { int id = id_; int s = src.id_; abi::member<0x479BA0, void>(&id, &s); }
+  void takeAllUnits(Group src) { if (!src.valid()) return; int s = src.id_; call<0x479BA0, void>(&s); }
   /// Count the group's units of a given classification (0 = vehicles, 1 = buildings, ... ClassDefdInTethys).
   /// (ScGroup::UnitCount @0x4799F0.)
-  [[nodiscard]] int unitCount(int classification) const { int id = id_; return abi::member<0x4799F0, int>(&id, classification); }
+  [[nodiscard]] int unitCount(int classification) const { return call<0x4799F0, int>(classification); }
   /// How many of (unitType, weaponType) the group should keep on strength - drives reinforcement production from
   /// the matching BuildingGroup. (ScGroup::SetTargCount @0x479C70.)
   void setTargCount(MapID unitType, MapID weaponType, int count) {
-    int id = id_; abi::member<0x479C70, void>(&id, int(unitType), int(weaponType), count);
+    call<0x479C70, void>(int(unitType), int(weaponType), count);
   }
-  void clearTargCount() { int id = id_; abi::member<0x479CB0, void>(&id); }  ///< Clear the target-count table.
+  void clearTargCount() { call<0x479CB0, void>(); }  ///< Clear the target-count table.
   /// Create a whole UnitBlock's worth of units (for this group's owner) and add them. (AddUnits @0x4799D0.)
-  void addUnits(UnitBlock& block) { int id = id_; abi::member<0x4799D0, void>(&id, block.raw()); }
+  void addUnits(UnitBlock& block) { call<0x4799D0, void>(block.raw()); }
   /// Set per-(type,weapon) target counts from a UnitBlock - drives reinforcement. (SetTargCount @0x479C40.)
-  void setTargCount(UnitBlock& block) { int id = id_; abi::member<0x479C40, void>(&id, block.raw()); }
+  void setTargCount(UnitBlock& block) { call<0x479C40, void>(block.raw()); }
   /// [BuildingGroup] Record a UnitBlock for the group's factories to (re)produce. (RecordUnitBlock @0x47A330.)
-  void recordUnitBlock(UnitBlock& block) { int id = id_; abi::member<0x47A330, void>(&id, block.raw()); }
+  void recordUnitBlock(UnitBlock& block) { call<0x47A330, void>(block.raw()); }
 
   // --- FightGroup combat strategy ---
-  void setAttackType(MapID t) { int id = id_; abi::member<0x479F60, void>(&id, int(t)); }  ///< Which unit types to attack.
-  void setTargetUnit(Unit u)  { int id = id_; abi::member<0x479F00, void>(&id, u.id()); }  ///< Specific target for doAttackUnit.
-  void setTargetGroup(Group g){ int id = id_; abi::member<0x479F90, void>(&id, g.id_); }   ///< Target group for doGuardGroup (by value).
-  void doAttackEnemy()        { int id = id_; abi::member<0x47A080, void>(&id); }  ///< Hunt the enemy (pair with setAttackType).
-  void doAttackUnit()         { int id = id_; abi::member<0x47A060, void>(&id); }  ///< Attack the set target unit.
-  void doGuardUnit()          { int id = id_; abi::member<0x47A040, void>(&id); }  ///< Guard the set target unit.
-  void doGuardGroup()         { int id = id_; abi::member<0x47A020, void>(&id); }  ///< Guard the set target group.
-  void doGuardRect()          { int id = id_; abi::member<0x479FC0, void>(&id); }  ///< Guard the set idle rect.
-  void doPatrolOnly()         { int id = id_; abi::member<0x47A000, void>(&id); }  ///< Patrol the assigned route only.
-  void doExitMap()            { int id = id_; abi::member<0x479FE0, void>(&id); }  ///< March the group off the map edge.
-  void setCombineFire()       { int id = id_; abi::member<0x479CC0, void>(&id); }  ///< Concentrate the group's fire.
-  void clearCombineFire()     { int id = id_; abi::member<0x479CF0, void>(&id); }
-  void setFollowMode(int m)   { int id = id_; abi::member<0x479F30, void>(&id, m); }       ///< Formation/follow mode.
+  void setAttackType(MapID t) { call<0x479F60, void>(int(t)); }  ///< Which unit types to attack.
+  void setTargetUnit(Unit u)  { call<0x479F00, void>(u.id()); }  ///< Specific target for doAttackUnit.
+  void setTargetGroup(Group g){ if (g.valid()) call<0x479F90, void>(g.id_); }   ///< Target group for doGuardGroup (by value).
+  void doAttackEnemy()        { call<0x47A080, void>(); }  ///< Hunt the enemy (pair with setAttackType).
+  void doAttackUnit()         { call<0x47A060, void>(); }  ///< Attack the set target unit.
+  void doGuardUnit()          { call<0x47A040, void>(); }  ///< Guard the set target unit.
+  void doGuardGroup()         { call<0x47A020, void>(); }  ///< Guard the set target group.
+  void doGuardRect()          { call<0x479FC0, void>(); }  ///< Guard the set idle rect.
+  void doPatrolOnly()         { call<0x47A000, void>(); }  ///< Patrol the assigned route only.
+  void doExitMap()            { call<0x479FE0, void>(); }  ///< March the group off the map edge.
+  void setCombineFire()       { call<0x479CC0, void>(); }  ///< Concentrate the group's fire.
+  void clearCombineFire()     { call<0x479CF0, void>(); }
+  void setFollowMode(int m)   { call<0x479F30, void>(m); }       ///< Formation/follow mode.
   /// [FightGroup] Patrol a fixed loop through up to 8 waypoints (visible tiles); the group cycles them until given
   /// another order. The route is kept alive internally (the engine holds the pointer). (SetPatrolMode @0x479D20.)
   void setPatrolMode(std::initializer_list<Location> waypoints) {
+    if (!valid()) return;
     auto& h = group_detail::patrolStore().emplace_back();
     for (Location w : waypoints) { if (h.wps.size() >= 8) break; h.wps.push_back({ w.engineX(), w.engineY() }); }
     h.wps.push_back({ -1, 0 });                              // x = -1 terminates the waypoint list
     h.route = { 0, h.wps.data() };                           // unknown1 = 0 (length comes from the -1 terminator)
-    int id = id_; abi::member<0x479D20, void>(&id, &h.route);
+    call<0x479D20, void>(&h.route);
   }
   /// [FightGroup] Stop patrolling. (ClearPatrolMode @0x479D80.)
-  void clearPatrolMode() { int id = id_; abi::member<0x479D80, void>(&id); }
+  void clearPatrolMode() { call<0x479D80, void>(); }
   /// [FightGroup] The idle/home rect the group falls back to (SetRect @0x479DA0). Corners in visible tiles.
-  void setIdleRect(Location tl, Location br) { int id = id_; int r[4]{ tl.engineX(), tl.engineY(), br.engineX(), br.engineY() }; abi::member<0x479DA0, void>(&id, &r[0]); }
+  void setIdleRect(Location tl, Location br) { int r[4]{ tl.engineX(), tl.engineY(), br.engineX(), br.engineY() }; call<0x479DA0, void>(&r[0]); }
   /// [FightGroup] Add a rect to guard / clear the guarded set (AddGuardedRect @0x479E60 / ClearGuardedRects @0x479EE0).
-  void addGuardedRect(Location tl, Location br) { int id = id_; int r[4]{ tl.engineX(), tl.engineY(), br.engineX(), br.engineY() }; abi::member<0x479E60, void>(&id, &r[0]); }
-  void clearGuardedRects()    { int id = id_; abi::member<0x479EE0, void>(&id); }
+  void addGuardedRect(Location tl, Location br) { int r[4]{ tl.engineX(), tl.engineY(), br.engineX(), br.engineY() }; call<0x479E60, void>(&r[0]); }
+  void clearGuardedRects()    { call<0x479EE0, void>(); }
 
   // --- MiningGroup ---
   /// [MiningGroup] Run an ore haul: trucks shuttle `mine` -> `smelter`, unloading in the rect by the smelter.
   /// The Unit form (pass the mine + smelter buildings) is the simplest. (MiningGroup::Setup @0x47A100.)
   void setupMining(Unit mine, Unit smelter, Location areaTL, Location areaBR) {
-    int id = id_; int r[4]{ areaTL.engineX(), areaTL.engineY(), areaBR.engineX(), areaBR.engineY() };
-    abi::member<0x47A100, void>(&id, mine.id(), smelter.id(), &r[0]);    // void(Unit, Unit, const MapRect&)
+    int r[4]{ areaTL.engineX(), areaTL.engineY(), areaBR.engineX(), areaBR.engineY() };
+    call<0x47A100, void>(mine.id(), smelter.id(), &r[0]);    // void(Unit, Unit, const MapRect&)
   }
 
   // --- BuildingGroup ---
   /// [BuildingGroup] The base-area rect the group builds within. (SetRect @0x47A2E0.)
-  void setBuildRect(Location tl, Location br) { int id = id_; int r[4]{ tl.engineX(), tl.engineY(), br.engineX(), br.engineY() }; abi::member<0x47A2E0, void>(&id, &r[0]); }
+  void setBuildRect(Location tl, Location br) { int r[4]{ tl.engineX(), tl.engineY(), br.engineX(), br.engineY() }; call<0x47A2E0, void>(&r[0]); }
   /// [BuildingGroup] Record a structure for the group to (re)build at `where`. (RecordBuilding @0x47A3E0.)
   /// For an ore mine use `recordMine` instead - mines need the CommonOreMine quirk handled (see below).
   void recordBuilding(Location where, MapID type, MapID cargoOrWeapon = MapID::None) {
-    int id = id_; int loc[2]{ where.engineX(), where.engineY() };
-    abi::member<0x47A3E0, void>(&id, &loc[0], int(type), int(cargoOrWeapon));   // void(Location&, MapID, MapID)
+    int loc[2]{ where.engineX(), where.engineY() };
+    call<0x47A3E0, void>(&loc[0], int(type), int(cargoOrWeapon));   // void(Location&, MapID, MapID)
   }
   /// [BuildingGroup] Record a mine for the group to build on the mining beacon at `beacon`. Use this for BOTH
   /// common AND rare ore mines: the recorded type is ALWAYS `CommonOreMine` and the BEACON sitting under `beacon`
@@ -181,12 +183,24 @@ public:
   /// more urgent). NOTE: priority 0 HANGS OP2, so we clamp to >= 1. (RecordVehReinforceGroup @0x47A440.)
   void recordVehReinforceGroup(Group target, int priority) {
     if (priority < 1) priority = 1;
-    int id = id_; int t = target.id_; abi::member<0x47A440, void>(&id, &t, priority);   // void(ScGroup&, int)
+    if (!target.valid()) return;
+    int t = target.id_; call<0x47A440, void>(&t, priority);   // void(ScGroup&, int)
   }
   /// [BuildingGroup] Stop reinforcing `target`. (UnRecordVehGroup @0x47A460.)
-  void unRecordVehGroup(Group target) { int id = id_; int t = target.id_; abi::member<0x47A460, void>(&id, &t); }
+  void unRecordVehGroup(Group target) { if (!target.valid()) return; int t = target.id_; call<0x47A460, void>(&t); }
 
 private:
+  /// Call the engine ScGroup member at `Addr` with this handle as `this` (the engine method takes ScGroup*, and an
+  /// ScGroup is just {int id}). An invalid or never-created group (id 255 = ScStubList::NilIndex) is a no-op that
+  /// returns R{}: the engine would index past its group table with it, then crash (reads such as
+  /// totalUnitCount) or write through a junk pointer (orders such as takeUnit).
+  template <std::uintptr_t Addr, class R, class... A>
+  R call(A... args) const {
+    if (!valid()) { if constexpr (std::is_void_v<R>) return; else return R{}; }
+    int id = id_;
+    return abi::member<Addr, R>(&id, args...);
+  }
+
   int id_ = kNilIndex;
 };
 
@@ -252,6 +266,7 @@ public:
   /// Define the wave ROUTES - the paths a wave can travel (Pinwheel::SetPoints @0x47A8B0). At least one route is
   /// required before launching. Points are visible tiles.
   void setPoints(std::initializer_list<WavePath> routes) {
+    if (!valid()) return;                                          // invalid Pinwheel: no-op (see Group::call)
     auto& store = pinwheel_detail::pwStore();
     store.emplace_back();
     auto& a = store.back();                                        // persists for the mission (engine keeps the ptr)
@@ -270,20 +285,21 @@ public:
   void setSapperComp(int minUnits, int maxUnits, std::initializer_list<WaveUnit> mix) { comp<0x47AA10>(minUnits, maxUnits, mix); }
 
   /// Fraction (0..100) of available units committed per attack wave. (SetAttackFraction @0x47AA60.)
-  void setAttackFraction(int pct) { int id = id_; abi::member<0x47AA60, void>(&id, pct); }
+  void setAttackFraction(int pct) { if (!valid()) return; int id = id_; abi::member<0x47AA60, void>(&id, pct); }
   /// Ticks the wave waits at a contact point before pressing on. (SetContactDelay @0x47A990.)
-  void setContactDelay(int ticks) { int id = id_; abi::member<0x47A990, void>(&id, ticks); }
+  void setContactDelay(int ticks) { if (!valid()) return; int id = id_; abi::member<0x47A990, void>(&id, ticks); }
 
   // ---- launch (only AFTER setPoints + a composition) ----
   /// Launch an attack wave right now. (Pinwheel::SendWaveNow @0x47AA40.)
-  void sendWaveNow(int waveIndex = 0) { int id = id_; abi::member<0x47AA40, void>(&id, waveIndex); }
+  void sendWaveNow(int waveIndex = 0) { if (!valid()) return; int id = id_; abi::member<0x47AA40, void>(&id, waveIndex); }
   /// Set the random interval (in ticks) between automatic waves. (Pinwheel::SetWavePeriod @0x47A970.)
-  void setWavePeriod(int minTicks, int maxTicks) { int id = id_; abi::member<0x47A970, void>(&id, minTicks, maxTicks); }
+  void setWavePeriod(int minTicks, int maxTicks) { if (!valid()) return; int id = id_; abi::member<0x47A970, void>(&id, minTicks, maxTicks); }
 
 private:
   /// Shared builder for the *Comp methods: build a -1-terminated MrRec table and call `Addr(minUnits, maxUnits, table)`.
   template <std::uintptr_t Addr>
   void comp(int minUnits, int maxUnits, std::initializer_list<WaveUnit> mix) {
+    if (!valid()) return;                                          // invalid Pinwheel: no-op (see Group::call)
     auto& store = pinwheel_detail::mrStore();
     store.emplace_back();
     auto& a = store.back();                                        // persists for the mission (engine keeps the ptr)

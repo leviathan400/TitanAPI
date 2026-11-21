@@ -400,6 +400,23 @@ static void run() {
     chk(br.placedUnits() >= 2,                  "createBase placedUnits() >= 2");
     chk(br.tubeLines == 1,                      "createBase laid the tube line"); }
 
+  // ---- v0.6.9: _Player-handle calls must not touch PlayerImpl; invalid handles are safe no-ops ----
+  // resetChecks / canBuildSpace / canDoResearch / hasTechnology are _Player (handle) methods that cache results in
+  // the handle's 8 check bytes. Before 0.6.9 they ran on PlayerImpl and wrote those bytes over PlayerImpl+4
+  // (alliedBy) and +8 (the satellite/launch bitfield), which made starship objectives fire spuriously.
+  { char* pi = op2::abi::ref<char*>(0x4890C3);                     // player 0's PlayerImpl (raw, for the check)
+    const int ally0 = pi ? *reinterpret_cast<int*>(pi + 4) : 0, sat0 = pi ? *reinterpret_cast<int*>(pi + 8) : 0;
+    p0.resetChecks();
+    const bool cbs = p0.canBuildSpace(); const bool cdr = p0.canDoResearch(3401); const bool ht = p0.hasTechnology(3401);
+    (void)cbs; (void)cdr; (void)ht;
+    chk(pi && *reinterpret_cast<int*>(pi + 4) == ally0 && *reinterpret_cast<int*>(pi + 8) == sat0,
+        "resetChecks/canBuildSpace/canDoResearch leave PlayerImpl+4/+8 untouched"); }
+  // A never-created Group / Trigger (id 255) must not reach the engine: reads return 0/false, orders do nothing.
+  { op2::Group none; op2::Trigger tnone;
+    none.takeUnit(lynx); none.setLights(true); tnone.enable();
+    chk(!none.valid() && none.totalUnitCount() == 0 && !none.isUnderAttack() && !tnone.isEnabled(),
+        "invalid Group/Trigger calls are safe no-ops"); }
+
   op2::log::linef("==================== SELF-TEST: %d PASSED, %d FAILED ====================", g_pass, g_fail);
 
   // Surface the result in the in-game Communications log, with a Beep so it pings the player even amid the
