@@ -11,8 +11,9 @@ starting colony into a few lines of data.
 
 > **Status: v0.6.9 - feature-complete and verified in-game.** Eight modules cover the full
 > mission-scripting surface (unit orders, state, enumeration, triggers + victory, AI groups, world & map,
-> mission lifecycle, base building). Every build is validated by a 159-check in-game self-test, and multiple sample
-> missions (single-player and multiplayer) ship in `samples/`.
+> mission lifecycle, base building). Every build is validated by a 165-check in-game self-test plus 8 later
+> checks that orders actually completed, and multiple sample missions (single-player and multiplayer) ship in
+> `samples/`.
 
 ---
 
@@ -96,7 +97,7 @@ See [`samples/`](samples/) for complete, in-game-verified missions, and
 | **BaseBuilder** | declarative `BaseLayout` -> `createBase(player, layout, offset)`; tube/wall line helpers; map messages |
 | **Player** | faction/human/AI, resources & population, research, alliances, difficulty, satellite counts, center-view |
 | **Crash diagnostics** | SEH-guarded exports + a process-wide unhandled-fault filter turn a crash into a logged fault address and game tick (e.g. `0xC0000005 at 0x4367DA, tick 2`) - a mission bug becomes debuggable instead of a silent lock-up |
-| **Tooling** | a 159-check in-game self-test; tick-stamped, flushed-per-line logging |
+| **Tooling** | a 165-check in-game self-test plus 8 order-outcome checks; tick-stamped, flushed-per-line logging |
 
 ---
 

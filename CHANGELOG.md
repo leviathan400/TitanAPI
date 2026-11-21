@@ -9,6 +9,14 @@ the first public release.
 - **CI on GitHub Actions** (`.github/workflows/build.yml`): every push to `main` and every pull request builds
   TitanAPI and all nine samples as 32-bit MSVC Release DLLs and uploads each DLL as a build artifact. A build
   badge is on the README.
+- **Order-outcome checks in the test mission.** The tick-3 self-test can only confirm an order was accepted.
+  A second phase at tick 2500 now checks that the demo orders actually happened: the scout arrived, the
+  ConVec's Agridome finished construction, the Earthworker's tube exists, the EMP + Spider capture took the
+  enemy Lynx, the mining trucks delivered ore, the Robo-Miner built its mine, the red scout patrolled its route,
+  and a one-shot `onTick` trigger fired its callback once (`hasFired` too). It logs its own
+  `OUTCOME CHECKS: n PASSED` line.
+- **Self-test coverage:** `isAlly` / `mutuallyAllyWith`, `centerViewOn` (must leave `PlayerImpl` untouched),
+  `satelliteCount`, and `onTick` trigger creation. Self-test now **165** checks.
 
 ### Changed
 - **Generated ABI headers regenerated from the latest TethysAPI RE data** (TethysAPI master, November 2026).
@@ -35,8 +43,15 @@ the first public release.
   an invalid handle is now a no-op that returns 0 / false.
 - **`samples/RisingFromTheAshes` is restored** to the complete mission (an unfinished debugging edit had left its
   AI base half built). It now runs cleanly with all five starship objectives correctly unmet at the start.
-- Self-test +2 (now **159**): the capability checks must leave `PlayerImpl` untouched, and calls on an invalid
-  `Group` / `Trigger` must be safe no-ops.
+- **A captured unit now reports and obeys its new owner.** `Unit` kept the owner it was created with, and
+  `ownerId()` and order dispatch preferred that cached value. After a Spider reprograms a unit (or anything
+  else changes its owner) the handle kept reporting the old owner and routed orders through the old owner's
+  command queue. The owner is now read live from the unit; the cached value is only a fallback once the unit is
+  dead. Found by the new outcome checks.
+- **`Unit::build` docs:** `bottomRight` is the corner of the site *including* its one-tile border, so the
+  structure ends one tile up and left of it (unchanged behaviour, matching TethysAPI's `DoBuild`).
+- Self-test +2: the capability checks must leave `PlayerImpl` untouched, and calls on an invalid `Group` /
+  `Trigger` must be safe no-ops.
 - **`samples/Template` now starts a colony that survives.** Its Agridome wasn't tubed to the Command Center, so
   it stayed idle; with no food stored and no storage building, the colony starved and the mission failed after
   about 775 ticks. The starting base now tubes an Agridome and a Common Storage to the Command Center, and the

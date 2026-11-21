@@ -12,6 +12,8 @@
 #include "op2_mission.hpp"    // the mission-DLL contract (ModDesc / ModDescEx / SaveRegion / MissionType)
 #include "op2_log.hpp"        // append-only debug log -> <OP2>\OPU\logs\cTitanAPI.log
 #include "op2_crash.hpp"      // SEH guards + unhandled-exception filter -> fault written to the log
+#include <cstdio>             // std::snprintf (self-test summary messages)
+#include <cstring>            // std::memcpy / std::memcmp (PlayerImpl byte-for-byte integrity checks)
 
 using namespace op2::mission;
 using op2::MapID;
@@ -78,6 +80,11 @@ namespace selftest {
 
 static int g_pass = 0;
 static int g_fail = 0;
+
+// State the self-test (tick 3) sets up for the later OUTCOME phase (outcomes(), at kOutcomeTick = 2500) to verify.
+static op2::Trigger g_tickTrigger;     // one-shot onTick(50) trigger
+static int          g_tickCallbacks = 0;   // how many times its C++ callback ran
+static int          g_redMinX = 9999, g_redMaxX = -1;   // red scout's x range while patrolling (AIProc tracks it)
 
 /// Record a boolean check.
 static void chk(bool cond, const char* name) {
@@ -417,6 +424,28 @@ static void run() {
     chk(!none.valid() && none.totalUnitCount() == 0 && !none.isUnderAttack() && !tnone.isEnabled(),
         "invalid Group/Trigger calls are safe no-ops"); }
 
+  // ---- alliances, view and satellite reads (the other _Player-handle / PlayerImpl calls) ----
+  // Alliances can't be undone, so ally with slot 2 - unused in this 2-player mission - and leave player 1 (the
+  // AI) an enemy, so the combat demos still play out.
+  { op2::Player p2 = op2::Game::player(2);
+    chk(!p0.isAlly(1),                          "Player::isAlly(1) false at start (the AI is an enemy)");
+    p0.mutuallyAllyWith(2);
+    chk(p0.isAlly(2) && p2.isAlly(0),           "Player::mutuallyAllyWith(2) -> isAlly both ways");
+    chk(!p0.isAlly(1),                          "mutuallyAllyWith(2) leaves player 1 an enemy"); }
+  // centerViewOn is a _Player method: it must leave the PlayerImpl record byte-for-byte unchanged.
+  { char* pi = op2::abi::ref<char*>(0x4890C3);
+    unsigned char before[64] = {};
+    if (pi) std::memcpy(before, pi, sizeof(before));
+    p0.centerViewOn({ 48, 80 });
+    chk(pi && std::memcmp(before, pi, sizeof(before)) == 0, "Player::centerViewOn leaves PlayerImpl untouched"); }
+  chk(p0.satelliteCount(int(MapID::SolarSatellite)) == 0 && p0.satelliteCount(int(MapID::EDWARDSatellite)) == 0
+      && p0.satelliteCount(int(MapID::EvacuationModule)) == 0,
+      "Player::satelliteCount reads 0 before any launch");
+
+  // A one-shot time trigger at tick 50: its callback and hasFired are checked by the outcome phase (outcomes()).
+  g_tickTrigger = op2::onTick(50, [] { ++g_tickCallbacks; });
+  chk(g_tickTrigger.valid() && g_tickTrigger.isEnabled(), "onTick(50) trigger created and enabled");
+
   op2::log::linef("==================== SELF-TEST: %d PASSED, %d FAILED ====================", g_pass, g_fail);
 
   // Surface the result in the in-game Communications log, with a Beep so it pings the player even amid the
@@ -426,6 +455,68 @@ static void run() {
   if (g_fail == 0) std::snprintf(msg, sizeof(msg), "TitanAPI v%s self-test: %d/%d PASSED", TITANAPI_VERSION, g_pass, total);
   else             std::snprintf(msg, sizeof(msg), "TitanAPI v%s self-test: %d of %d FAILED - see log", TITANAPI_VERSION, g_fail, total);
   op2::Game::addMessage(msg, /*soundID=*/85 /* SoundID::Beep2 */);
+}
+
+/// OUTCOME phase - run once from AIProc at kOutcomeTick. The tick-3 self-test can only check that an order was
+/// ACCEPTED (orders apply asynchronously); this checks, later, that the demo orders AIProc issued actually
+/// HAPPENED in the game. Logged with its own summary line, separate from the self-test's.
+/// Timing: the slowest outcome is the ConVec's Agridome - construction finishes at about tick 1870 (measured
+/// in OP2TestHarness; while building, the ConVec's action reads ObjFroze). 2500 leaves margin and still falls
+/// inside a 3000-tick harness run.
+static constexpr int kOutcomeTick = 2500;
+static void outcomes() {
+  const int pass0 = g_pass, fail0 = g_fail;
+  op2::log::line("==================== OUTCOME CHECKS ====================");
+  const op2::Player p0 = op2::Game::player(0);
+
+  // move(): the scout was ordered from (49,84) to (55,84) on the first AIProc call.
+  { const op2::Location at = g_scout.location();
+    op2::log::linef("    scout at vis(%d,%d)", at.x, at.y);
+    chk(g_scout.isLive() && at.x == 55 && at.y == 84, "outcome: scout.move(55,84) arrived"); }
+
+  // build(): the ConVec's Agridome kit with site corner (56,81) (border included) -> the 3x2 Agridome covers
+  // (53..55, 79..80). It must exist AND have finished construction.
+  { const op2::Unit b = op2::GameMap::unitOnTile({ 54, 80 });
+    op2::log::linef("    tile (54,80): type=%d owner=%d underConstruction=%d disabled=%d | convec cmd=%d action=%d",
+                    int(b.type()), b.ownerId(), b.underConstruction() ? 1 : 0, b.isDisabled() ? 1 : 0,
+                    int(g_buildConvec.command()), int(g_buildConvec.action()));
+    chk(b.isLive() && b.type() == MapID::Agridome && b.ownerId() == 0 && !b.underConstruction(),
+        "outcome: convec.build -> Agridome built at (53..55, 79..80)"); }
+
+  // buildTube(): the Earthworker was ordered at mark 1 to lay a tube at (61,98).
+  { const int ct = int(op2::GameMap::getCellType({ 61, 98 }));
+    op2::log::linef("    tile (61,98): cellType=%d", ct);
+    // (op2::CellType is the terrain subset; the tube classes are in the full engine enum, op2::abi::CellType.)
+    chk(ct >= int(op2::abi::CellType::Tube0) && ct <= int(op2::abi::CellType::Tube5),
+        "outcome: earthworker.buildTube -> tube at (61,98)"); }
+
+  // EMP capture: two EMP Lynxes EMP the enemy laser Lynx, then the Spider reprograms it -> player 0 owns it.
+  op2::log::linef("    enemy lynx: live=%d owner=%d", g_enemyLynx.isLive() ? 1 : 0, g_enemyLynx.ownerId());
+  chk(g_enemyLynx.isLive() && g_enemyLynx.ownerId() == 0, "outcome: EMP + reprogram captured the enemy Lynx");
+
+  // mine(): two trucks haul ore mine -> smelter (and the organic mine's trucks too). Player 0 started with 5000.
+  op2::log::linef("    player 0 common ore = %d (started at 5000)", p0.commonOre());
+  chk(p0.commonOre() > 5000, "outcome: truck mining routes delivered ore (common ore rose)");
+
+  // deploy(): the Robo-Miner built a Common Ore Mine on the surveyed organic beacon at (35,90).
+  { const int mineId = op2::abi::findBuilding(0, int(MapID::CommonOreMine), op2::Location{ 35, 90 }.engineX(),
+                                              op2::Location{ 35, 90 }.engineY(), 2);
+    chk(mineId > 0, "outcome: robo-miner.deploy built a mine on the organic beacon"); }
+
+  // patrol(): the red scout patrols 58,67 <-> 68,67 - it must have covered most of that span.
+  op2::log::linef("    red scout x range seen: %d..%d", g_redMinX, g_redMaxX);
+  chk(g_redMinX <= 60 && g_redMaxX >= 66, "outcome: redScout.patrol covered the 58..68 route");
+
+  // onTick(50): the one-shot time trigger fired its C++ callback exactly once.
+  op2::log::linef("    onTick(50) callback runs = %d, hasFired(0) = %d", g_tickCallbacks,
+                  g_tickTrigger.hasFired(0) ? 1 : 0);
+  chk(g_tickCallbacks == 1 && g_tickTrigger.hasFired(0), "outcome: onTick(50) fired once (callback + hasFired)");
+
+  const int pass = g_pass - pass0, fail = g_fail - fail0;
+  op2::log::linef("==================== OUTCOME CHECKS: %d PASSED, %d FAILED ====================", pass, fail);
+  char msg[96];
+  std::snprintf(msg, sizeof(msg), "TitanAPI outcome checks: %d/%d PASSED", pass, pass + fail);
+  op2::Game::addMessage(msg, /*soundID=*/85);
 }
 
 } // namespace selftest
@@ -745,6 +836,15 @@ static void aiProcImpl() {
       }
     }
   }
+
+  // Track the red scout's patrol span, then run the OUTCOME checks once the demo orders have had time to finish.
+  if (g_redScout.isLive()) {
+    const int x = g_redScout.location().x;
+    if (x < selftest::g_redMinX) selftest::g_redMinX = x;
+    if (x > selftest::g_redMaxX) selftest::g_redMaxX = x;
+  }
+  static bool outcomesDone = false;
+  if (!outcomesDone && op2::Game::tick() >= selftest::kOutcomeTick) { outcomesDone = true; selftest::outcomes(); }
 
   // At mark 1 (tick 100), order the Earthworker to build a tube at 61,98. Fires once.
   static bool tubeAtMark1 = false;

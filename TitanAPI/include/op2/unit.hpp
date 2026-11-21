@@ -270,8 +270,10 @@ public:
     return dispatch(b);
   }
 
-  /// [ConVec] Build the structure kit the ConVec carries, its bottom-right corner at `bottomRight`. The
-  /// footprint is read from the building type's stats - no need to pass the size.
+  /// [ConVec] Build the structure kit the ConVec carries. `bottomRight` is the bottom-right corner of the
+  /// building's site INCLUDING its one-tile border, so the structure itself ends one tile up and left of it
+  /// (e.g. a 3x2 Agridome with bottomRight (56,81) covers (53..55, 79..80)) - the same convention as TethysAPI's
+  /// DoBuild. The footprint is read from the building type's stats - no need to pass the size.
   Result<void> build(Location bottomRight) {
     char* p = abi::mapObject(id_);
     if (!p) return fail(err::NullHandle);
@@ -430,9 +432,15 @@ private:
     return dispatch(b);
   }
 
-  /// Owner player index: the one we were created with, else read live from the MapObject (so orders work on
-  /// enumerated/foreign units too).
-  int ownerIndex() const { return owner_ >= 0 ? owner_ : abi::moOwner(abi::mapObject(id_)); }
+  /// Owner player index, read LIVE from the MapObject while the unit is alive: ownership can change after the
+  /// handle was made (a Spider reprograms an EMP'd unit, a building is captured), and orders must go through the
+  /// CURRENT owner's ProcessCommandPacket. The owner cached at creation (owner_) is only the fallback for a unit
+  /// that is no longer live. (Before 0.6.9 the cached owner won, so a captured unit kept reporting - and
+  /// dispatching orders as - its old owner.)
+  int ownerIndex() const {
+    if (char* p = abi::mapObject(id_); p && abi::moIsLive(p)) return abi::moOwner(p);
+    return owner_;
+  }
 
   /// Validate and route a built packet through the owning player's ProcessCommandPacket.
   Result<void> dispatch(abi::CmdBuilder& b) const {
