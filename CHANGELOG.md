@@ -38,6 +38,9 @@ the first public release.
   module added since (groups, triggers, world/disasters, save/load, BaseBuilder) and this release's fixes; it
   now runs the same 232-check self-test and 16 outcome checks, reports v0.6.10, and its README says how to keep it
   in sync.
+- **`docs/FACADE-DESIGN.md` §10 (Testing)** now describes the testing as built - the ABI guard, CI, the in-game
+  self-test and outcome checks, and unattended runs of every mission in OP2TestHarness - instead of the
+  original plan.
 
 ### Fixed
 - **Starship objectives no longer turn green on their own (memory corruption).** Seven `Player` calls -

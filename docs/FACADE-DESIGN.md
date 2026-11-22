@@ -563,15 +563,24 @@ the save region(s) in a typed way (a real gap in earlier mission toolkits, which
 
 ## 10. Testing - the thing no prior mission SDK had
 
-This is as important as the API. Two layers:
+This is as important as the API. As built (v0.6.10), four layers:
 
-- **Compile-time ABI guard** (`tests/static/`): for every `abi::raw` struct, `static_assert` its
-  `sizeof` and key `offsetof` against the extracted (generated) values. If a future RE
-  re-extraction changes a size/offset, the build breaks loudly instead of corrupting memory at runtime.
-- **In-game regression harness** (`tests/ingame/`): mission DLLs that issue each order and assert the
-  in-game outcome - the MoveTest / feature-test pattern OP2Lua already uses, generalized. Each order
-  (move/dock/miningRoute/build/attack/…) gets a scenario that fails before the fix and passes after, run
-  on **both 1.3.6 and 1.4.1**. Wire it to the `run-and-watch.ps1`-style automation.
+- **Compile-time ABI guard:** the command-packet structs in `op2/abi/raw/command.hpp` pin their sizes with
+  `static_assert`, and a maintainer-side probe compiles `static_assert(offsetof(...))` for every hand-written
+  engine offset (MapObject, MapImpl, PlayerImpl, the `_Player` handle, GameImpl, the ScGroup records) against
+  the TethysAPI headers. It is re-run whenever the RE data is refreshed, so a moved field breaks the build
+  instead of corrupting memory at runtime.
+- **CI** (`.github/workflows/build.yml`): every push and pull request builds TitanAPI and all samples.
+- **In-game self-test** (the test mission, `TitanAPI/src/mission.cpp`, copied as `samples/SmokeTest`): at
+  tick 3 it calls every facade function and logs `[PASS]`/`[FAIL]` - orders are checked as *accepted*, state
+  by reading values back, engine-side effects by reading the engine's own records (e.g. a group's stored
+  target and objective). At tick 2500 a second phase checks the orders' *outcomes* in the game: the scout
+  arrived, the building finished, the captured Lynx changed owner, the attack group destroyed its target.
+- **Unattended runs in OP2TestHarness:** every mission DLL (test mission + samples) is played at full speed
+  in a private OPU 1.4.1 game copy, and a run fails on a crash, an early end, a self-test or outcome failure,
+  or a corrupted player record. This is the generalized MoveTest pattern: each bug found this way (the
+  `_Player`/`PlayerImpl` mix-up, FightGroup targets reset by `Do*()`, the stale owner after a capture) got a
+  check that fails before the fix and passes after.
 
 Result types make these assertions clean: a test can assert `r.error().status == OrderStatus::WrongUnitType`.
 
