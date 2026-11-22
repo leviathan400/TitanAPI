@@ -16,7 +16,14 @@ the first public release.
   and a one-shot `onTick` trigger fired its callback once (`hasFired` too). It logs its own
   `OUTCOME CHECKS: n PASSED` line.
 - **Self-test coverage:** `isAlly` / `mutuallyAllyWith`, `centerViewOn` (must leave `PlayerImpl` untouched),
-  `satelliteCount`, and `onTick` trigger creation. Self-test now **165** checks.
+  `satelliteCount`, and `onTick` trigger creation.
+- **Unit coverage:** `hitpoints`, `inflictDamage`, `heal` (incl. clamping), `setWeapon` / `weapon`, `setKit`,
+  `setTruckCargo` / `truckCargo`, `setFactoryCargo` / `factoryCargo`, and the building flags (`hasPower`,
+  `hasWorkers`, `hasScientists`, `isIdled`, `isInfected`) are read back; `loadCargo`, `unloadCargo`, `research`,
+  `trainScientists` and `launch` are checked as accepted; and the outcome phase confirms `dumpCargo` emptied the
+  truck, `standGround` arrived, `kill` killed, `buildWall` built a wall, `idle` idled a Tokamak, and a finished
+  Agridome reads powered and staffed. Self-test now **197** checks, outcome phase **14**. (`transferCargo` is
+  deliberately not exercised: issuing it with no vehicle on the factory dock crashes OP2.)
 
 ### Changed
 - **Generated ABI headers regenerated from the latest TethysAPI RE data** (TethysAPI master, November 2026).
@@ -29,7 +36,7 @@ the first public release.
   sizes and field offsets unchanged).
 - **`samples/SmokeTest` refreshed** from the current test mission. It was a v0.6.2 snapshot that missed every
   module added since (groups, triggers, world/disasters, save/load, BaseBuilder) and this release's fixes; it
-  now runs the same 165-check self-test and 8 outcome checks, reports v0.6.9, and its README says how to keep it
+  now runs the same 197-check self-test and 14 outcome checks, reports v0.6.9, and its README says how to keep it
   in sync.
 
 ### Fixed

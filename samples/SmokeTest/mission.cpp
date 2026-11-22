@@ -88,6 +88,11 @@ static int g_fail = 0;
 static op2::Trigger g_tickTrigger;     // one-shot onTick(50) trigger
 static int          g_tickCallbacks = 0;   // how many times its C++ callback ran
 static int          g_redMinX = 9999, g_redMaxX = -1;   // red scout's x range while patrolling (AIProc tracks it)
+static op2::Unit    g_dumpTruck;   // given cargo, then dumpCargo() -> must end up empty
+static op2::Unit    g_standLynx;   // standGround({84,90}) -> must end up there
+static op2::Unit    g_killMe;      // kill() -> must be dead
+static op2::Unit    g_wallWorker;  // buildWall(Wall, {86,92}) -> a wall must stand there
+static op2::Unit    g_idled;       // a Tokamak idle()d -> isIdled()
 
 /// Record a boolean check.
 static void chk(bool cond, const char* name) {
@@ -449,6 +454,64 @@ static void run() {
   g_tickTrigger = op2::onTick(50, [] { ++g_tickCallbacks; });
   chk(g_tickTrigger.valid() && g_tickTrigger.isEnabled(), "onTick(50) trigger created and enabled");
 
+  // ---- v0.6.9: the remaining Unit state reads, setters and orders ----
+  // Fresh units in their own patch (x 77..88, y 88..98) so nothing above or the AIProc demos is disturbed.
+  // Setters and reads are checked by reading the value back now; orders whose effect takes time get an
+  // "accepted" check here and an effect check in outcomes().
+  { // health: hitpoints / inflictDamage / heal
+    op2::Unit u = mk("createUnit(Lynx for health)", MapID::Lynx, { 77, 88 }, p0, MapID::Microwave);
+    const int maxHp = u.maxHitpoints();
+    chk(maxHp > 0 && u.hitpoints() == maxHp,                     "Unit::hitpoints == maxHitpoints when undamaged");
+    u.inflictDamage(10);
+    chk(u.damage() == 10 && u.hitpoints() == maxHp - 10,          "Unit::inflictDamage(10)");
+    u.heal(4);
+    chk(u.damage() == 6,                                          "Unit::heal(4)");
+    u.heal(1000);
+    chk(u.damage() == 0 && u.hitpoints() == maxHp,                "Unit::heal clamps damage at 0"); }
+  { // weapon / kit / truck-cargo setters (all write the unit's cargo word)
+    op2::Unit w = mk("createUnit(Lynx for setWeapon)", MapID::Lynx, { 78, 88 }, p0, MapID::Microwave);
+    w.setWeapon(MapID::Laser);
+    chk(w.weapon() == MapID::Laser,                               "Unit::setWeapon(Laser) -> weapon()");
+    op2::Unit k = mk("createUnit(ConVec for setKit)", MapID::ConVec, { 79, 88 }, p0);
+    k.setKit(MapID::Tokamak);
+    chk(k.cargo() == int(MapID::Tokamak),                         "Unit::setKit(Tokamak) -> cargo()");
+    g_dumpTruck = mk("createUnit(CargoTruck for cargo)", MapID::CargoTruck, { 80, 88 }, p0);
+    g_dumpTruck.setTruckCargo(2, 300);
+    chk(g_dumpTruck.truckCargo() == 2 && g_dumpTruck.truckCargoAmount() == 300, "Unit::setTruckCargo -> truckCargo/Amount");
+    chkR(g_dumpTruck.dumpCargo(),                                 "Unit::dumpCargo (accepted; emptied: outcomes)"); }
+  { // load / unload: accepted (the truck isn't docked, so the engine just has nothing to move)
+    op2::Unit t = mk("createUnit(CargoTruck for load/unload)", MapID::CargoTruck, { 81, 88 }, p0);
+    chkR(t.loadCargo(),                                           "Unit::loadCargo (accepted)");
+    chkR(t.unloadCargo(),                                         "Unit::unloadCargo (accepted)"); }
+  { // factory cargo bays: write bay 5 and read it back, then clear it again
+    factory.setFactoryCargo(5, MapID::Lynx, MapID::Laser);
+    chk(factory.factoryCargo(5) == MapID::Lynx,                   "Unit::setFactoryCargo -> factoryCargo(5)");
+    factory.setFactoryCargo(5, MapID::None);
+    chk(factory.factoryCargo(5) == MapID::None && lynx.factoryCargo(0) == MapID::None,
+        "Unit::factoryCargo cleared / None on a non-factory"); }
+  { // building flags are gated on isBuilding: every one reads false on a vehicle
+    chk(!lynx.hasPower() && !lynx.hasWorkers() && !lynx.hasScientists() && !lynx.isIdled() && !lynx.isInfected(),
+        "Unit building flags read false on a vehicle");
+    chk(!factory.isInfected(),                                    "Unit::isInfected false (no blight here)"); }
+  // Orders with a visible effect - checked in outcomes():
+  g_standLynx = mk("createUnit(Lynx for standGround)", MapID::Lynx, { 82, 88 }, p0, MapID::Microwave);
+  chkR(g_standLynx.standGround({ 84, 90 }),                       "Unit::standGround (accepted; arrival: outcomes)");
+  g_killMe = mk("createUnit(Scout for kill)", MapID::Scout, { 83, 88 }, p0);
+  g_killMe.kill();                                                // death is checked in outcomes()
+  g_wallWorker = mk("createUnit(Earthworker for buildWall)", MapID::Earthworker, { 84, 88 }, p0);
+  chkR(g_wallWorker.buildWall(MapID::Wall, { 86, 92 }, { 86, 92 }), "Unit::buildWall (accepted; wall: outcomes)");
+  g_idled = mk("createUnit(Tokamak to idle)", MapID::Tokamak, { 79, 96 }, p0);
+  chkR(g_idled.idle(),                                            "Unit::idle on a Tokamak (accepted; isIdled: outcomes)");
+  // Building-specific orders: accepted checks only. research/trainScientists/launch run on new, unstaffed
+  // buildings, so the engine has nothing to do with them; transferCargo is deliberately NOT called - issuing
+  // it without a vehicle on the factory dock crashes OP2.
+  { op2::Unit lab = mk("createUnit(BasicLab)", MapID::BasicLab, { 83, 96 }, p0);
+    chkR(lab.research(3401, 1),                                   "Unit::research (accepted)");
+    op2::Unit uni = mk("createUnit(University)", MapID::University, { 87, 96 }, p0);
+    chkR(uni.trainScientists(1),                                  "Unit::trainScientists (accepted)");
+    op2::Unit sp = mk("createUnit(Spaceport)", MapID::Spaceport, { 83, 101 }, p0);
+    chkR(sp.launch({ 90, 40 }),                                   "Unit::launch (accepted, empty pad)"); }
+
   op2::log::linef("==================== SELF-TEST: %d PASSED, %d FAILED ====================", g_pass, g_fail);
 
   // Surface the result in the in-game Communications log, with a Beep so it pings the player even amid the
@@ -514,6 +577,24 @@ static void outcomes() {
   op2::log::linef("    onTick(50) callback runs = %d, hasFired(0) = %d", g_tickCallbacks,
                   g_tickTrigger.hasFired(0) ? 1 : 0);
   chk(g_tickCallbacks == 1 && g_tickTrigger.hasFired(0), "outcome: onTick(50) fired once (callback + hasFired)");
+
+  // The remaining Unit orders (issued in the self-test at tick 3):
+  op2::log::linef("    dump truck cargo=%d amount=%d", g_dumpTruck.truckCargo(), g_dumpTruck.truckCargoAmount());
+  chk(g_dumpTruck.isLive() && g_dumpTruck.truckCargoAmount() == 0, "outcome: dumpCargo emptied the truck");
+  { const op2::Location at = g_standLynx.location();
+    op2::log::linef("    standGround lynx at vis(%d,%d)", at.x, at.y);
+    chk(g_standLynx.isLive() && at.x == 84 && at.y == 90, "outcome: standGround(84,90) arrived"); }
+  chk(!g_killMe.isLive(),                                       "outcome: kill() - the unit is dead");
+  { const int ct = int(op2::GameMap::getCellType({ 86, 92 }));
+    op2::log::linef("    tile (86,92): cellType=%d", ct);
+    chk(ct == int(op2::abi::CellType::NormalWall),              "outcome: buildWall -> wall at (86,92)"); }
+  chk(g_idled.isLive() && g_idled.isIdled(),                    "outcome: idle() - the Tokamak reads isIdled");
+  // Building operational flags on the finished, tubed demo Agridome (checked above): powered and staffed.
+  { const op2::Unit b = op2::GameMap::unitOnTile({ 54, 80 });
+    op2::log::linef("    agridome flags: power=%d workers=%d scientists=%d idled=%d infected=%d", b.hasPower() ? 1 : 0,
+                    b.hasWorkers() ? 1 : 0, b.hasScientists() ? 1 : 0, b.isIdled() ? 1 : 0, b.isInfected() ? 1 : 0);
+    chk(b.hasPower() && b.hasWorkers() && !b.isIdled() && !b.isInfected(),
+        "outcome: finished Agridome reads powered + staffed, not idled or infected"); }
 
   const int pass = g_pass - pass0, fail = g_fail - fail0;
   op2::log::linef("==================== OUTCOME CHECKS: %d PASSED, %d FAILED ====================", pass, fail);
