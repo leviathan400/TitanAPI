@@ -45,7 +45,7 @@ cmake --build build --config Release
 
 → `build/Release/cTitanSmokeTest.dll`. Drop it into your OPU `maps\` folder; it appears as a Colony game
 ("TitanAPI Smoke Test") and logs to `<OP2>\OPU\logs\cTitanSmokeTest.log`. A healthy build logs
-`SELF-TEST: 197 PASSED, 0 FAILED` at tick 3 and, if you let the game run to tick 2500 (mark 25),
+`SELF-TEST: 221 PASSED, 0 FAILED` at tick 3 and, if you let the game run to tick 2500 (mark 25),
 `OUTCOME CHECKS: 14 PASSED, 0 FAILED`. Both results also show in the in-game Communications log.
 
 To refresh this sample after the test mission changes, copy `TitanAPI/src/mission.cpp` here and re-apply the

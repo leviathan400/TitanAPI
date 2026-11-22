@@ -512,6 +512,109 @@ static void run() {
     op2::Unit sp = mk("createUnit(Spaceport)", MapID::Spaceport, { 83, 101 }, p0);
     chkR(sp.launch({ 90, 40 }),                                   "Unit::launch (accepted, empty pad)"); }
 
+  // ---- v0.6.9: AI groups - roster, targets, objectives and recorded state ----
+  // Each group call is checked by reading the engine's own group record back (ScGroupImpl and its subclasses;
+  // field offsets from TethysAPI's Game/ScBase.h, offsetof-verified). The group table is at 0x56C35C.
+  { auto rec = [](op2::Group g) -> char* {
+      char* tbl = reinterpret_cast<char*>(op2::abi::reloc(0x56C35C));
+      return g.valid() ? *reinterpret_cast<char**>(tbl + 4 * g.id()) : nullptr; };
+    auto field = [&](op2::Group g, int off) { char* p = rec(g); return p ? *reinterpret_cast<int*>(p + off) : -999; };
+    constexpr int kCombineFire = 776, kTargetGroup = 852, kTargetUnit = 860, kNumGuardedRects = 864,
+                  kObjective = 996;                                  // FightGroupImpl
+    constexpr int kMineUnit = 776, kSmelterUnit = 780;               // MineGroupImpl
+    constexpr int kRecBuildings = 808, kRecMines = 812, kRecVehGroups = 820;   // BuildingGroupImpl::recordInfo_
+    constexpr int kDeleteWhenEmptyTick = 760;                        // ScGroupImpl
+
+    // Roster: takeUnit / removeUnit / takeAllUnits / unitCount.
+    op2::Group fg = op2::createFightGroup(p0), fg2 = op2::createFightGroup(p0);
+    op2::Unit a = mk("createUnit(Lynx A for group)", MapID::Lynx, { 60, 104 }, p0, MapID::Laser);
+    op2::Unit b = mk("createUnit(Lynx B for group)", MapID::Lynx, { 61, 104 }, p0, MapID::Laser);
+    op2::Unit c = mk("createUnit(Lynx C for group)", MapID::Lynx, { 62, 104 }, p0, MapID::Laser);
+    fg.takeUnit(a); fg.takeUnit(b); fg.takeUnit(c);
+    chk(fg.totalUnitCount() == 3,                                 "Group::takeUnit x3 -> totalUnitCount 3");
+    chk(fg.unitCount(0) == 3,                                     "Group::unitCount(0 = Attack class) counts the 3 Lynx");
+    fg.removeUnit(c);
+    chk(fg.totalUnitCount() == 2,                                 "Group::removeUnit");
+    fg2.takeUnit(c);
+    fg.takeAllUnits(fg2);
+    chk(fg.totalUnitCount() == 3 && fg2.totalUnitCount() == 0,    "Group::takeAllUnits moved the whole roster");
+
+    // FightGroup settings.
+    fg.setCombineFire();
+    chk(field(fg, kCombineFire) != 0,                             "Group::setCombineFire");
+    fg.clearCombineFire();
+    chk(field(fg, kCombineFire) == 0,                             "Group::clearCombineFire");
+    fg.setTargetGroup(fg2);
+    chk(field(fg, kTargetGroup) == fg2.id(),                      "Group::setTargetGroup");
+    const int rects0 = field(fg, kNumGuardedRects);
+    fg.addGuardedRect({ 58, 102 }, { 64, 106 });
+    chk(field(fg, kNumGuardedRects) == rects0 + 1,                "Group::addGuardedRect");
+    fg.clearGuardedRects();
+    chk(field(fg, kNumGuardedRects) == 0,                         "Group::clearGuardedRects");
+
+    // FightGroup objectives - each do*() sets the group's objective (CombatGroupObjective in TethysAPI).
+    fg.setIdleRect({ 58, 102 }, { 64, 106 });
+    fg.doGuardRect();   const int oRect   = field(fg, kObjective);
+    fg.setPatrolMode({ { 58, 104 }, { 64, 104 } });
+    fg.doPatrolOnly();  const int oPatrol = field(fg, kObjective);
+    fg.doGuardGroup();  const int oGGroup = field(fg, kObjective);
+    op2::Unit decoy = mk("createUnit(enemy Scout, guard/attack target)", MapID::Scout, { 66, 104 }, p1);
+    fg.setTargetUnit(decoy);
+    chk(field(fg, kTargetUnit) == decoy.id(),                     "Group::setTargetUnit");
+    fg.doGuardUnit();   const int oGUnit  = field(fg, kObjective);
+    fg.doAttackUnit();  const int oAttack = field(fg, kObjective);
+    op2::log::linef("    objectives: guardRect=%d patrol=%d guardGroup=%d guardUnit=%d attackUnit=%d",
+                    oRect, oPatrol, oGGroup, oGUnit, oAttack);
+    chk(oRect == 0 && oPatrol == 1 && oGGroup == 2 && oGUnit == 3 && oAttack == 4,
+        "Group::doGuardRect/doPatrolOnly/doGuardGroup/doGuardUnit/doAttackUnit set the objective");
+    fg.doGuardRect();   // park the group in its idle rect again (see the doAttackUnit note below)
+    { op2::Group ex = op2::createFightGroup(p0);                  // doExitMap on its own (empty) group
+      ex.doExitMap();
+      chk(field(ex, kObjective) == 6,                             "Group::doExitMap sets the ExitMap objective"); }
+    // NOTE: there is deliberately no outcome check that doAttackUnit kills its target. In 0.6.9 testing the
+    // objective and target are set correctly (checked above), but a player-0 group then drives to (0,0) without
+    // attacking, and an AI-owned group given the same calls crashed OP2 at 0x0042812F. Open issue - see the
+    // changelog / private notes before relying on doAttackUnit.
+
+    // MiningGroup: setupMining records the mine and smelter (no trucks, so it doesn't take over any routes).
+    op2::Group mg = op2::createMiningGroup(p0);
+    mg.setupMining(g_mine, g_smelter, { 44, 88 }, { 50, 92 });
+    chk(field(mg, kMineUnit) == g_mine.id() && field(mg, kSmelterUnit) == g_smelter.id(),
+        "Group::setupMining records the mine and smelter");
+
+    // BuildingGroup: record-only calls bump the group's recorded counts (no ConVecs, so nothing is built).
+    op2::Group bg = op2::createBuildingGroup(p0);
+    const int bld0 = field(bg, kRecBuildings), mine0 = field(bg, kRecMines), veh0 = field(bg, kRecVehGroups);
+    bg.recordBuilding({ 62, 108 }, MapID::Agridome);
+    bg.recordMine({ 44, 88 });
+    bg.recordVehReinforceGroup(fg, 1);
+    op2::log::linef("    building group records: buildings %d->%d mines %d->%d vehGroups %d->%d", bld0,
+                    field(bg, kRecBuildings), mine0, field(bg, kRecMines), veh0, field(bg, kRecVehGroups));
+    chk(field(bg, kRecBuildings) == bld0 + 1,                     "Group::recordBuilding adds a building record");
+    chk(field(bg, kRecMines) == mine0 + 1,                        "Group::recordMine adds a mine record");
+    chk(field(bg, kRecVehGroups) == veh0 + 1,                     "Group::recordVehReinforceGroup adds a record");
+    bg.unRecordVehGroup(fg);
+    chk(field(bg, kRecVehGroups) == veh0,                         "Group::unRecordVehGroup removes it");
+    { op2::UnitBlock blk({ { MapID::ConVec, { 62, 110 } } });
+      bg.recordUnitBlock(blk);
+      chk(bg.valid() && field(bg, kRecBuildings) >= bld0,         "Group::recordUnitBlock leaves the group intact"); }
+
+    // setDeleteWhenEmpty, on its own empty group that is never used again (the engine may delete it).
+    { op2::Group del = op2::createFightGroup(p0);
+      const int before = field(del, kDeleteWhenEmptyTick);
+      del.setDeleteWhenEmpty(true);
+      const int after = field(del, kDeleteWhenEmptyTick);
+      op2::log::linef("    deleteWhenEmptyTick: %d -> %d", before, after);
+      chk(after != before,                                        "Group::setDeleteWhenEmpty updates the group"); } }
+  // Pinwheel waves: setGuardComp / setSapperComp are record-only. setWavePeriod / sendWaveNow are deliberately NOT
+  // called: they launch real attack waves, which could end this mission (destroy a Command Center) before the
+  // outcome phase runs.
+  { op2::Pinwheel pw = op2::createPinwheel(p1);
+    pw.setPoints({ { { 62, 66 }, { 58, 78 }, { 54, 86 }, { 50, 90 }, 0, 0, 0 } });
+    pw.setGuardComp(1, 2, { { MapID::Lynx, MapID::Laser } });
+    pw.setSapperComp(1, 1, { { MapID::Lynx, MapID::EMP } });
+    chk(pw.valid(),                                               "Pinwheel setGuardComp/setSapperComp on a live Pinwheel"); }
+
   op2::log::linef("==================== SELF-TEST: %d PASSED, %d FAILED ====================", g_pass, g_fail);
 
   // Surface the result in the in-game Communications log, with a Beep so it pings the player even amid the

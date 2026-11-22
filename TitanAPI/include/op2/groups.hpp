@@ -106,7 +106,9 @@ public:
 
   /// Move ALL units out of `src` and into this group. (ScGroup::TakeAllUnits @0x479BA0 - takes ScGroup*.)
   void takeAllUnits(Group src) { if (!src.valid()) return; int s = src.id_; call<0x479BA0, void>(&s); }
-  /// Count the group's units of a given classification (0 = vehicles, 1 = buildings, ... ClassDefdInTethys).
+  /// Count the group's units of a given UnitClassification (TethysAPI's enum): 0 = Attack (Lynx/Panther/Tiger/
+  /// Scorpion with a normal weapon), 1 = ESG, 2 = EMP, 3 = Stickyfoam, 4 = Spider, 5 = ConVec, 6 = RepairVehicle,
+  /// 7 = CargoTruck, 8 = Earthworker, 9 = Colony vehicles (Scout, Robo-*, GeoCon, Evac), 10+ = factories.
   /// (ScGroup::UnitCount @0x4799F0.)
   [[nodiscard]] int unitCount(int classification) const { return call<0x4799F0, int>(classification); }
   /// How many of (unitType, weaponType) the group should keep on strength - drives reinforcement production from
@@ -127,7 +129,11 @@ public:
   void setTargetUnit(Unit u)  { call<0x479F00, void>(u.id()); }  ///< Specific target for doAttackUnit.
   void setTargetGroup(Group g){ if (g.valid()) call<0x479F90, void>(g.id_); }   ///< Target group for doGuardGroup (by value).
   void doAttackEnemy()        { call<0x47A080, void>(); }  ///< Hunt the enemy (pair with setAttackType).
-  void doAttackUnit()         { call<0x47A060, void>(); }  ///< Attack the set target unit.
+  /// Attack the set target unit (setTargetUnit first). KNOWN ISSUE (0.6.9): the objective and target are stored
+  /// correctly, but in testing a player-0 group then drove to the map corner (0,0) without attacking, and an
+  /// AI-owned group given the same calls crashed OP2 (0x0042812F). Prefer doAttackEnemy + setAttackType, or
+  /// order the units directly with Unit::attack, until this is resolved.
+  void doAttackUnit()         { call<0x47A060, void>(); }
   void doGuardUnit()          { call<0x47A040, void>(); }  ///< Guard the set target unit.
   void doGuardGroup()         { call<0x47A020, void>(); }  ///< Guard the set target group.
   void doGuardRect()          { call<0x479FC0, void>(); }  ///< Guard the set idle rect.

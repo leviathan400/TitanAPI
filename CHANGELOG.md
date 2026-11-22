@@ -22,8 +22,23 @@ the first public release.
   `hasWorkers`, `hasScientists`, `isIdled`, `isInfected`) are read back; `loadCargo`, `unloadCargo`, `research`,
   `trainScientists` and `launch` are checked as accepted; and the outcome phase confirms `dumpCargo` emptied the
   truck, `standGround` arrived, `kill` killed, `buildWall` built a wall, `idle` idled a Tokamak, and a finished
-  Agridome reads powered and staffed. Self-test now **197** checks, outcome phase **14**. (`transferCargo` is
-  deliberately not exercised: issuing it with no vehicle on the factory dock crashes OP2.)
+  Agridome reads powered and staffed. (`transferCargo` is deliberately not exercised: issuing it with no vehicle
+  on the factory dock crashes OP2.)
+- **Group coverage**, checked by reading the engine's own group records back: `takeUnit`, `removeUnit`,
+  `takeAllUnits`, `unitCount`; `setCombineFire` / `clearCombineFire`, `setTargetGroup`, `setTargetUnit`,
+  `addGuardedRect` / `clearGuardedRects`; the objectives set by `doGuardRect`, `doPatrolOnly`, `doGuardGroup`,
+  `doGuardUnit`, `doAttackUnit` and `doExitMap`; `setupMining` (records the mine and smelter);
+  `recordBuilding`, `recordMine`, `recordVehReinforceGroup` / `unRecordVehGroup`, `recordUnitBlock`; and
+  `setDeleteWhenEmpty`. Pinwheel `setGuardComp` / `setSapperComp` are exercised; `setWavePeriod` /
+  `sendWaveNow` are not, because a live attack wave could end the test mission. Self-test now **221** checks,
+  outcome phase **14**.
+
+### Known issues
+- **`Group::doAttackUnit` doesn't make the group attack.** The objective and target are stored correctly, but in
+  testing a player-0 FightGroup then drove to the map corner (0,0) without attacking, and an AI-owned group given
+  the same calls crashed OP2 (0x0042812F). `samples/RisingFromTheAshes` uses it for its raid waves, which only
+  launch once the player provokes the AI. Until it's resolved, use `doAttackEnemy` + `setAttackType`, or order
+  the units directly with `Unit::attack`.
 
 ### Changed
 - **Generated ABI headers regenerated from the latest TethysAPI RE data** (TethysAPI master, November 2026).
@@ -36,7 +51,7 @@ the first public release.
   sizes and field offsets unchanged).
 - **`samples/SmokeTest` refreshed** from the current test mission. It was a v0.6.2 snapshot that missed every
   module added since (groups, triggers, world/disasters, save/load, BaseBuilder) and this release's fixes; it
-  now runs the same 197-check self-test and 14 outcome checks, reports v0.6.9, and its README says how to keep it
+  now runs the same 221-check self-test and 14 outcome checks, reports v0.6.9, and its README says how to keep it
   in sync.
 
 ### Fixed
@@ -59,6 +74,8 @@ the first public release.
   else changes its owner) the handle kept reporting the old owner and routed orders through the old owner's
   command queue. The owner is now read live from the unit; the cached value is only a fallback once the unit is
   dead. Found by the new outcome checks.
+- **`Group::unitCount` docs:** the classification is the engine's UnitClassification (0 = Attack vehicles,
+  1 = ESG, 2 = EMP, ... 5 = ConVec, 7 = CargoTruck, 9 = colony vehicles), not "0 = vehicles, 1 = buildings".
 - **`Unit::build` docs:** `bottomRight` is the corner of the site *including* its one-tile border, so the
   structure ends one tile up and left of it (unchanged behaviour, matching TethysAPI's `DoBuild`).
 - Self-test +2: the capability checks must leave `PlayerImpl` untouched, and calls on an invalid `Group` /
