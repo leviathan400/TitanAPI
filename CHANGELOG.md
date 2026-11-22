@@ -30,15 +30,11 @@ the first public release.
   `doGuardUnit`, `doAttackUnit` and `doExitMap`; `setupMining` (records the mine and smelter);
   `recordBuilding`, `recordMine`, `recordVehReinforceGroup` / `unRecordVehGroup`, `recordUnitBlock`; and
   `setDeleteWhenEmpty`. Pinwheel `setGuardComp` / `setSapperComp` are exercised; `setWavePeriod` /
-  `sendWaveNow` are not, because a live attack wave could end the test mission. Self-test now **221** checks,
-  outcome phase **14**.
-
-### Known issues
-- **`Group::doAttackUnit` doesn't make the group attack.** The objective and target are stored correctly, but in
-  testing a player-0 FightGroup then drove to the map corner (0,0) without attacking, and an AI-owned group given
-  the same calls crashed OP2 (0x0042812F). `samples/RisingFromTheAshes` uses it for its raid waves, which only
-  launch once the player provokes the AI. Until it's resolved, use `doAttackEnemy` + `setAttackType`, or order
-  the units directly with `Unit::attack`.
+  `sendWaveNow` are not, because a live attack wave could end the test mission. The outcome phase checks that a
+  player-0 FightGroup and an AI-owned one each destroy the unit they were told to attack. Self-test now **232**
+  checks, outcome phase **16**.
+- **One-call FightGroup orders:** `doAttackUnit(target)`, `doGuardUnit(target)`, `doGuardGroup(group)` and
+  `doAttackEnemy(type)` give the objective and its target together.
 
 ### Changed
 - **Generated ABI headers regenerated from the latest TethysAPI RE data** (TethysAPI master, November 2026).
@@ -51,7 +47,7 @@ the first public release.
   sizes and field offsets unchanged).
 - **`samples/SmokeTest` refreshed** from the current test mission. It was a v0.6.2 snapshot that missed every
   module added since (groups, triggers, world/disasters, save/load, BaseBuilder) and this release's fixes; it
-  now runs the same 221-check self-test and 14 outcome checks, reports v0.6.9, and its README says how to keep it
+  now runs the same 232-check self-test and 16 outcome checks, reports v0.6.9, and its README says how to keep it
   in sync.
 
 ### Fixed
@@ -63,6 +59,14 @@ the first public release.
   starship count triggers then fired. `RisingFromTheAshes`, which runs `resetChecks()` + `canBuildSpace()` every
   cycle for its defeat check, won by itself at tick 16. They now run on the engine's own handle (the global
   `_Player` array at 0x56C280), as original SDK missions do.
+- **FightGroup orders no longer lose their target (and `doAttackUnit` no longer crashes AI groups).** Every
+  engine FightGroup `Do*()` call resets the group's target unit, target group and attack type before switching
+  objective. So the natural sequence - `setTargetUnit(t)` then `doAttackUnit()` - left the group attacking
+  "unit 0": a player-0 group drove off toward the map corner, and an AI-owned group crashed OP2 (0x0042812F).
+  The same happened to `doGuardUnit` / `doGuardGroup`, and `setAttackType` before `doAttackEnemy` was silently
+  dropped. TitanAPI's `do*()` now re-applies the targets the group had, so either order works.
+  `samples/RisingFromTheAshes` sends its raid waves this way, so its raids now attack their target instead of
+  crashing the game. (TethysAPI behaves the same way when called in that order - it's the engine's behaviour.)
 - **A never-created `Group`, `Pinwheel` or `Trigger` can no longer crash the game.** A default handle holds the
   engine's nil index (255); calls passed it straight to the engine, which indexed past its group table - reads
   such as `totalUnitCount()` crashed and orders such as `takeUnit()` wrote through a junk pointer. Every call on

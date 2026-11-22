@@ -125,20 +125,28 @@ public:
   void recordUnitBlock(UnitBlock& block) { call<0x47A330, void>(block.raw()); }
 
   // --- FightGroup combat strategy ---
-  void setAttackType(MapID t) { call<0x479F60, void>(int(t)); }  ///< Which unit types to attack.
-  void setTargetUnit(Unit u)  { call<0x479F00, void>(u.id()); }  ///< Specific target for doAttackUnit.
+  // The targets: set them before or after the do*() objective - either order works (see order() below).
+  void setAttackType(MapID t) { call<0x479F60, void>(int(t)); }  ///< Which unit types to attack (doAttackEnemy).
+  void setTargetUnit(Unit u)  { call<0x479F00, void>(u.id()); }  ///< Specific target for doAttackUnit / doGuardUnit.
   void setTargetGroup(Group g){ if (g.valid()) call<0x479F90, void>(g.id_); }   ///< Target group for doGuardGroup (by value).
-  void doAttackEnemy()        { call<0x47A080, void>(); }  ///< Hunt the enemy (pair with setAttackType).
-  /// Attack the set target unit (setTargetUnit first). KNOWN ISSUE (0.6.9): the objective and target are stored
-  /// correctly, but in testing a player-0 group then drove to the map corner (0,0) without attacking, and an
-  /// AI-owned group given the same calls crashed OP2 (0x0042812F). Prefer doAttackEnemy + setAttackType, or
-  /// order the units directly with Unit::attack, until this is resolved.
-  void doAttackUnit()         { call<0x47A060, void>(); }
-  void doGuardUnit()          { call<0x47A040, void>(); }  ///< Guard the set target unit.
-  void doGuardGroup()         { call<0x47A020, void>(); }  ///< Guard the set target group.
-  void doGuardRect()          { call<0x479FC0, void>(); }  ///< Guard the set idle rect.
-  void doPatrolOnly()         { call<0x47A000, void>(); }  ///< Patrol the assigned route only.
-  void doExitMap()            { call<0x479FE0, void>(); }  ///< March the group off the map edge.
+
+  // The objectives. In the engine, EVERY FightGroup Do*() call resets the group's target unit, target group and
+  // attack type (to -1 / -1 / None) before switching objective - so the usual "set the target, then give the
+  // order" sequence silently lost the target: doAttackUnit then attacked unit 0, which sent a player-0 group to
+  // the map corner and crashed OP2 for an AI-owned group (0x0042812F). TitanAPI's do*() therefore re-applies the
+  // targets the group had before the call (order()), so either order is safe. The one-call forms below
+  // (doAttackUnit(target), ...) say it explicitly.
+  void doAttackEnemy()        { order<0x47A080>(); }  ///< Hunt the enemy (pair with setAttackType).
+  void doAttackUnit()         { order<0x47A060>(); }  ///< Attack the target unit (setTargetUnit).
+  void doGuardUnit()          { order<0x47A040>(); }  ///< Guard the target unit (setTargetUnit).
+  void doGuardGroup()         { order<0x47A020>(); }  ///< Guard the target group (setTargetGroup).
+  void doGuardRect()          { order<0x479FC0>(); }  ///< Guard the set idle rect.
+  void doPatrolOnly()         { order<0x47A000>(); }  ///< Patrol the assigned route only.
+  void doExitMap()            { order<0x479FE0>(); }  ///< March the group off the map edge.
+  void doAttackEnemy(MapID type) { doAttackEnemy(); setAttackType(type); }   ///< Hunt enemy units of `type`.
+  void doAttackUnit(Unit target) { doAttackUnit();  setTargetUnit(target); } ///< Attack `target`.
+  void doGuardUnit(Unit target)  { doGuardUnit();   setTargetUnit(target); } ///< Guard `target`.
+  void doGuardGroup(Group target){ doGuardGroup();  setTargetGroup(target); }///< Guard the group `target`.
   void setCombineFire()       { call<0x479CC0, void>(); }  ///< Concentrate the group's fire.
   void clearCombineFire()     { call<0x479CF0, void>(); }
   void setFollowMode(int m)   { call<0x479F30, void>(m); }       ///< Formation/follow mode.
@@ -205,6 +213,29 @@ private:
     if (!valid()) { if constexpr (std::is_void_v<R>) return; else return R{}; }
     int id = id_;
     return abi::member<Addr, R>(&id, args...);
+  }
+
+  // FightGroupImpl fields that the engine's Do*() calls reset (offsets from TethysAPI Game/ScBase.h,
+  // offsetof-verified; the ScGroupImpl* table is at 0x56C35C, indexed by group id).
+  static constexpr int kOffTargetGroup = 852, kOffAttackType = 856, kOffTargetUnit = 860;
+  [[nodiscard]] int implField(int off) const {
+    if (!valid()) return -1;
+    char* tbl  = reinterpret_cast<char*>(abi::reloc(0x56C35C));
+    char* impl = *reinterpret_cast<char**>(tbl + 4 * id_);
+    return impl ? *reinterpret_cast<int*>(impl + off) : -1;
+  }
+  /// Issue the FightGroup objective at `Addr`, keeping the group's targets: read the target unit / target group /
+  /// attack type, call the engine Do*() (which resets all three), then set back the ones that were set. Only
+  /// plausible values are restored (unit id > 0, group index 0..254, attack type a real MapID), so a stray call
+  /// on a non-FightGroup can't write garbage back.
+  template <std::uintptr_t Addr>
+  void order() {
+    if (!valid()) return;
+    const int tu = implField(kOffTargetUnit), tg = implField(kOffTargetGroup), at = implField(kOffAttackType);
+    call<Addr, void>();
+    if (tu > 0 && tu < 4096)            call<0x479F00, void>(tu);   // SetTargetUnit
+    if (tg >= 0 && tg < kNilIndex)      call<0x479F90, void>(tg);   // SetTargetGroup
+    if (at > 0 && at < 256)             call<0x479F60, void>(at);   // SetAttackType
   }
 
   int id_ = kNilIndex;

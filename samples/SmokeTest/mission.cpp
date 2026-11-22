@@ -93,6 +93,8 @@ static op2::Unit    g_standLynx;   // standGround({84,90}) -> must end up there
 static op2::Unit    g_killMe;      // kill() -> must be dead
 static op2::Unit    g_wallWorker;  // buildWall(Wall, {86,92}) -> a wall must stand there
 static op2::Unit    g_idled;       // a Tokamak idle()d -> isIdled()
+static op2::Unit    g_attackTarget0;   // enemy Scout a player-0 FightGroup doAttackUnit()s -> must be dead
+static op2::Unit    g_attackTarget1;   // player-0 Scout an AI FightGroup doAttackUnit(target)s -> must be dead
 
 /// Record a boolean check.
 static void chk(bool cond, const char* name) {
@@ -567,14 +569,32 @@ static void run() {
                     oRect, oPatrol, oGGroup, oGUnit, oAttack);
     chk(oRect == 0 && oPatrol == 1 && oGGroup == 2 && oGUnit == 3 && oAttack == 4,
         "Group::doGuardRect/doPatrolOnly/doGuardGroup/doGuardUnit/doAttackUnit set the objective");
-    fg.doGuardRect();   // park the group in its idle rect again (see the doAttackUnit note below)
+    // The engine's Do*() resets the target unit / group / attack type; TitanAPI's do*() must put them back.
+    chk(field(fg, kTargetUnit) == decoy.id() && field(fg, kTargetGroup) == fg2.id(),
+        "Group::do*() keep the target unit and target group set before the call");
+    fg.doGuardRect();   // park the group in its idle rect again
     { op2::Group ex = op2::createFightGroup(p0);                  // doExitMap on its own (empty) group
       ex.doExitMap();
       chk(field(ex, kObjective) == 6,                             "Group::doExitMap sets the ExitMap objective"); }
-    // NOTE: there is deliberately no outcome check that doAttackUnit kills its target. In 0.6.9 testing the
-    // objective and target are set correctly (checked above), but a player-0 group then drives to (0,0) without
-    // attacking, and an AI-owned group given the same calls crashed OP2 at 0x0042812F. Open issue - see the
-    // changelog / private notes before relying on doAttackUnit.
+    // doAttackUnit for real (outcomes() checks each target is destroyed): a player-0 group using the usual
+    // "target, then order" sequence, and an AI-owned group using the one-call doAttackUnit(target). Each gets an
+    // idle rect so it returns there after the kill. (Before 0.6.9 the first drove off to (0,0) and the second
+    // crashed OP2.)
+    { op2::Group atk = op2::createFightGroup(p0);
+      for (int x = 60; x <= 62; ++x) atk.takeUnit(mk("createUnit(Lynx, p0 attack group)", MapID::Lynx, { x, 107 }, p0, MapID::Laser));
+      g_attackTarget0 = mk("createUnit(enemy Scout, p0 group target)", MapID::Scout, { 66, 107 }, p1);
+      atk.setIdleRect({ 58, 106 }, { 64, 108 });
+      atk.setTargetUnit(g_attackTarget0);
+      atk.doAttackUnit();
+      chk(field(atk, kTargetUnit) == g_attackTarget0.id() && field(atk, kObjective) == 4,
+          "p0 attack group: target kept + AttackUnit objective"); }
+    { op2::Group atk = op2::createFightGroup(p1);
+      for (int x = 60; x <= 62; ++x) atk.takeUnit(mk("createUnit(Lynx, AI attack group)", MapID::Lynx, { x, 110 }, p1, MapID::Laser));
+      g_attackTarget1 = mk("createUnit(Scout, AI group target)", MapID::Scout, { 66, 110 }, p0);
+      atk.setIdleRect({ 58, 109 }, { 64, 111 });
+      atk.doAttackUnit(g_attackTarget1);
+      chk(field(atk, kTargetUnit) == g_attackTarget1.id() && field(atk, kObjective) == 4,
+          "AI attack group: doAttackUnit(target) sets target + objective"); }
 
     // MiningGroup: setupMining records the mine and smelter (no trucks, so it doesn't take over any routes).
     op2::Group mg = op2::createMiningGroup(p0);
@@ -692,6 +712,11 @@ static void outcomes() {
     op2::log::linef("    tile (86,92): cellType=%d", ct);
     chk(ct == int(op2::abi::CellType::NormalWall),              "outcome: buildWall -> wall at (86,92)"); }
   chk(g_idled.isLive() && g_idled.isIdled(),                    "outcome: idle() - the Tokamak reads isIdled");
+  // FightGroup doAttackUnit: both attack groups set up in the self-test must have destroyed their targets.
+  op2::log::linef("    attack targets: p0-group target live=%d, AI-group target live=%d",
+                  g_attackTarget0.isLive() ? 1 : 0, g_attackTarget1.isLive() ? 1 : 0);
+  chk(g_attackTarget0.valid() && !g_attackTarget0.isLive(),    "outcome: p0 FightGroup doAttackUnit destroyed its target");
+  chk(g_attackTarget1.valid() && !g_attackTarget1.isLive(),    "outcome: AI FightGroup doAttackUnit(target) destroyed its target");
   // Building operational flags on the finished, tubed demo Agridome (checked above): powered and staffed.
   { const op2::Unit b = op2::GameMap::unitOnTile({ 54, 80 });
     op2::log::linef("    agridome flags: power=%d workers=%d scientists=%d idled=%d infected=%d", b.hasPower() ? 1 : 0,
