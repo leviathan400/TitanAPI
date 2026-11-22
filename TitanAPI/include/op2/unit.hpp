@@ -435,7 +435,7 @@ private:
   /// Owner player index, read LIVE from the MapObject while the unit is alive: ownership can change after the
   /// handle was made (a Spider reprograms an EMP'd unit, a building is captured), and orders must go through the
   /// CURRENT owner's ProcessCommandPacket. The owner cached at creation (owner_) is only the fallback for a unit
-  /// that is no longer live. (Before 0.6.9 the cached owner won, so a captured unit kept reporting - and
+  /// that is no longer live. (Before 0.6.10 the cached owner won, so a captured unit kept reporting - and
   /// dispatching orders as - its old owner.)
   int ownerIndex() const {
     if (char* p = abi::mapObject(id_); p && abi::moIsLive(p)) return abi::moOwner(p);

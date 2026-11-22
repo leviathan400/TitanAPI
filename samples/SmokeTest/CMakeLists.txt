@@ -11,7 +11,7 @@
 # Output: build/Release/cTitanSmokeTest.dll  (drop into your OPU maps\ folder; logs to OPU\logs\cTitanSmokeTest.log)
 
 cmake_minimum_required(VERSION 3.21)
-project(TitanSmokeTest VERSION 0.6.9 LANGUAGES CXX RC DESCRIPTION "TitanAPI sample: in-game smoke test (self-test)")
+project(TitanSmokeTest VERSION 0.6.10 LANGUAGES CXX RC DESCRIPTION "TitanAPI sample: in-game smoke test (self-test)")
 
 if(NOT MSVC)
   message(FATAL_ERROR "Outpost 2 is a 32-bit MSVC target - build with MSVC (cl.exe).")

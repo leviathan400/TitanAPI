@@ -414,9 +414,9 @@ static void run() {
     chk(br.placedUnits() >= 2,                  "createBase placedUnits() >= 2");
     chk(br.tubeLines == 1,                      "createBase laid the tube line"); }
 
-  // ---- v0.6.9: _Player-handle calls must not touch PlayerImpl; invalid handles are safe no-ops ----
+  // ---- v0.6.10: _Player-handle calls must not touch PlayerImpl; invalid handles are safe no-ops ----
   // resetChecks / canBuildSpace / canDoResearch / hasTechnology are _Player (handle) methods that cache results in
-  // the handle's 8 check bytes. Before 0.6.9 they ran on PlayerImpl and wrote those bytes over PlayerImpl+4
+  // the handle's 8 check bytes. Before 0.6.10 they ran on PlayerImpl and wrote those bytes over PlayerImpl+4
   // (alliedBy) and +8 (the satellite/launch bitfield), which made starship objectives fire spuriously.
   { char* pi = op2::abi::ref<char*>(0x4890C3);                     // player 0's PlayerImpl (raw, for the check)
     const int ally0 = pi ? *reinterpret_cast<int*>(pi + 4) : 0, sat0 = pi ? *reinterpret_cast<int*>(pi + 8) : 0;
@@ -453,7 +453,7 @@ static void run() {
   g_tickTrigger = op2::onTick(50, [] { ++g_tickCallbacks; });
   chk(g_tickTrigger.valid() && g_tickTrigger.isEnabled(), "onTick(50) trigger created and enabled");
 
-  // ---- v0.6.9: the remaining Unit state reads, setters and orders ----
+  // ---- v0.6.10: the remaining Unit state reads, setters and orders ----
   // Fresh units in their own patch (x 77..88, y 88..98) so nothing above or the AIProc demos is disturbed.
   // Setters and reads are checked by reading the value back now; orders whose effect takes time get an
   // "accepted" check here and an effect check in outcomes().
@@ -511,7 +511,7 @@ static void run() {
     op2::Unit sp = mk("createUnit(Spaceport)", MapID::Spaceport, { 83, 101 }, p0);
     chkR(sp.launch({ 90, 40 }),                                   "Unit::launch (accepted, empty pad)"); }
 
-  // ---- v0.6.9: AI groups - roster, targets, objectives and recorded state ----
+  // ---- v0.6.10: AI groups - roster, targets, objectives and recorded state ----
   // Each group call is checked by reading the engine's own group record back (ScGroupImpl and its subclasses;
   // field offsets from TethysAPI's Game/ScBase.h, offsetof-verified). The group table is at 0x56C35C.
   { auto rec = [](op2::Group g) -> char* {
@@ -575,7 +575,7 @@ static void run() {
       chk(field(ex, kObjective) == 6,                             "Group::doExitMap sets the ExitMap objective"); }
     // doAttackUnit for real (outcomes() checks each target is destroyed): a player-0 group using the usual
     // "target, then order" sequence, and an AI-owned group using the one-call doAttackUnit(target). Each gets an
-    // idle rect so it returns there after the kill. (Before 0.6.9 the first drove off to (0,0) and the second
+    // idle rect so it returns there after the kill. (Before 0.6.10 the first drove off to (0,0) and the second
     // crashed OP2.)
     { op2::Group atk = op2::createFightGroup(p0);
       for (int x = 60; x <= 62; ++x) atk.takeUnit(mk("createUnit(Lynx, p0 attack group)", MapID::Lynx, { x, 107 }, p0, MapID::Laser));

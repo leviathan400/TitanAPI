@@ -322,7 +322,7 @@ void buildPlayerBase() {
         .setCommonOre(ore, 50000).setFood(food, 50000).setRareOre(0);
   // Initialize the research/tech state: level 1 grants the starting techs and keeps the Phoenix Module (and the
   // rest of the tree) as things you still research. (The spuriously-green starship objectives once blamed on the
-  // tech state were really TitanAPI <= 0.6.7 calling the _Player capability checks on PlayerImpl - fixed in 0.6.9.)
+  // tech state were really TitanAPI <= 0.6.7 calling the _Player capability checks on PlayerImpl - fixed in 0.6.10.)
   kHuman.setTechLevel(1);
 
   BaseLayout base;

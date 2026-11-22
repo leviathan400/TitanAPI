@@ -3,12 +3,9 @@
 All notable changes to **Outpost 2 TitanAPI** are documented here. This is the public changelog; it begins at
 the first public release.
 
-## 0.6.9 - 2026-11-21 - Player-state corruption fix, engine data refreshed from the latest TethysAPI
+## 0.6.10 - 2026-11-22 - Player-state corruption fix, FightGroup target fix, order-outcome checks
 
 ### Added
-- **CI on GitHub Actions** (`.github/workflows/build.yml`): every push to `main` and every pull request builds
-  TitanAPI and all nine samples as 32-bit MSVC Release DLLs and uploads each DLL as a build artifact. A build
-  badge is on the README.
 - **Order-outcome checks in the test mission.** The tick-3 self-test can only confirm an order was accepted.
   A second phase at tick 2500 now checks that the demo orders actually happened: the scout arrived, the
   ConVec's Agridome finished construction, the Earthworker's tube exists, the EMP + Spider capture took the
@@ -37,17 +34,9 @@ the first public release.
   `doAttackEnemy(type)` give the objective and its target together.
 
 ### Changed
-- **Generated ABI headers regenerated from the latest TethysAPI RE data** (TethysAPI master, November 2026).
-  `op2/abi/enums.hpp` gains the `SettingToggle` enum; `op2/abi/addresses.hpp` picks up 43 newly bound
-  functions and follows upstream renames (e.g. `TubeConnectionManager` -> `HiveManager`,
-  `CheckSpontaneouslyExplode` -> `CanSpontaneouslyExplode`); `op2/abi/structs.scaffold.hpp` reflects the many
-  newly named struct fields (MapObject, Vehicle, Building, TApp, ScBase, PathFinder, ...) and new structs
-  (`CargoTruck`, `Hive`, `Projectile`, ...). The `command_map.hpp` table is unchanged.
-- **Every hand-written engine offset and address was re-verified** against the updated headers (all struct
-  sizes and field offsets unchanged).
 - **`samples/SmokeTest` refreshed** from the current test mission. It was a v0.6.2 snapshot that missed every
   module added since (groups, triggers, world/disasters, save/load, BaseBuilder) and this release's fixes; it
-  now runs the same 232-check self-test and 16 outcome checks, reports v0.6.9, and its README says how to keep it
+  now runs the same 232-check self-test and 16 outcome checks, reports v0.6.10, and its README says how to keep it
   in sync.
 
 ### Fixed
@@ -84,6 +73,25 @@ the first public release.
   structure ends one tile up and left of it (unchanged behaviour, matching TethysAPI's `DoBuild`).
 - Self-test +2: the capability checks must leave `PlayerImpl` untouched, and calls on an invalid `Group` /
   `Trigger` must be safe no-ops.
+
+## 0.6.9 - 2026-11-21 - Engine data refreshed from the latest TethysAPI
+
+### Added
+- **CI on GitHub Actions** (`.github/workflows/build.yml`): every push to `main` and every pull request builds
+  TitanAPI and all nine samples as 32-bit MSVC Release DLLs and uploads each DLL as a build artifact. A build
+  badge is on the README.
+
+### Changed
+- **Generated ABI headers regenerated from the latest TethysAPI RE data** (TethysAPI master, November 2026).
+  `op2/abi/enums.hpp` gains the `SettingToggle` enum; `op2/abi/addresses.hpp` picks up 43 newly bound
+  functions and follows upstream renames (e.g. `TubeConnectionManager` -> `HiveManager`,
+  `CheckSpontaneouslyExplode` -> `CanSpontaneouslyExplode`); `op2/abi/structs.scaffold.hpp` reflects the many
+  newly named struct fields (MapObject, Vehicle, Building, TApp, ScBase, PathFinder, ...) and new structs
+  (`CargoTruck`, `Hive`, `Projectile`, ...). The `command_map.hpp` table is unchanged.
+- **Every hand-written engine offset and address was re-verified** against the updated headers (all struct
+  sizes and field offsets unchanged).
+
+### Fixed
 - **`samples/Template` now starts a colony that survives.** Its Agridome wasn't tubed to the Command Center, so
   it stayed idle; with no food stored and no storage building, the colony starved and the mission failed after
   about 775 ticks. The starting base now tubes an Agridome and a Common Storage to the Command Center, and the

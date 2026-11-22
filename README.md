@@ -9,7 +9,7 @@ straight on the running game engine, with no legacy SDK stack to wrangle. Orders
 instead of crashing the game, units and players are simple value handles, and a declarative BaseBuilder turns a
 starting colony into a few lines of data.
 
-> **Status: v0.6.9 - feature-complete and verified in-game.** Eight modules cover the full
+> **Status: v0.6.10 - feature-complete and verified in-game.** Eight modules cover the full
 > mission-scripting surface (unit orders, state, enumeration, triggers + victory, AI groups, world & map,
 > mission lifecycle, base building). Every build is validated by a 232-check in-game self-test plus 16 later
 > checks that orders actually completed, and multiple sample missions (single-player and multiplayer) ship in
